@@ -1,34 +1,48 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
-import mpmath
+import struct
 from mpmath import mp
 
-# Number of terms in polynomial approximation
 N = 6
+"""
+Number of terms in polynomial approximation
+"""
 
-# Beginning of range over which to approximate
-A = mp.mpf(0)
+A = mp.mpf(0.0)
+"""
+Beginning of range over which to approximate
+"""
 
-# End of range over which to approximate
-B = mp.mpf(mp.pi / 4)
+B = mp.pi / 4.0
+"""
+End of range over which to approximate
+"""
 
 
-# Note: The polynomial approximation, p, can be fixed to be 1.0 at 0.0 by
-# letting the first coefficient be 1.0, and then approximating
-# (f(x) - 1.0) / x instead
-#
-
-#
-# Function to approximate
-#
 def f(x):
-    return (mp.cos(x) - 1.0) / x
+    """
+    Function to approximate
+
+    Note: The polynomial approximation, p, can be fixed to be C at 0.0 by
+    letting the first coefficient be C, and then approximating
+    (f(x) - C) / x instead. This can be used to make the error zero at
+    x == 0.0.
+
+    :param x:
+    :return:
+    """
+
+    return mp.sin(x) / x
 
 
-#
-# computed ith Chebyshev polynomial at x
-#
 def T(i, x):
+    """
+    computed ith Chebyshev polynomial at x
+
+    :param i:
+    :param x:
+    :return:
+    """
     if i == 0:
         return 1
 
@@ -38,17 +52,22 @@ def T(i, x):
     return (x + x) * T(i - 1, x) - T(i - 2, x)
 
 
-#
-# Compute u value for x
-#
 def u(x):
+    """
+    Compute u value for x
+    :param x:
+    :return:
+    """
+
     return 0.5 * ((B - A) * x + A + B)
 
 
-#
-# computed the x value of the ith chebyshev node
-#
 def chebyshev_node_x(i):
+    """
+    Compute the x value of the ith Chebyshev node
+    :param i:
+    :return:
+    """
     numer = (2 * mp.mpf(i) - 1) * mp.pi
     denom = 2 * N
 
@@ -160,6 +179,28 @@ def main():
     print("Polynomial approximation (x):")
     for (x, i) in zip(x_polynomial_coefficients, range(0, N)):
         print(f"x^{i}: {x}")
+
+    desmos_polynomial = ""
+    for (i, C) in enumerate(reversed(x_polynomial_coefficients)):
+        coefficient_as_string = f"{C}"
+        if 'e' in coefficient_as_string:
+            coefficient_as_string = coefficient_as_string.replace('e', '* 10^{')
+            coefficient_as_string += '}'
+
+        desmos_polynomial += coefficient_as_string + "x^" + "{" + f"{N - i - 1}" + "} + "
+
+    desmos_polynomial = desmos_polynomial.rstrip(" + ")
+
+    print()
+    print(f"Desmos polynomial (x):\n{desmos_polynomial}")
+
+    hex_polynomial = ""
+    for (i, C) in enumerate(reversed(x_polynomial_coefficients)):
+        as_hex = hex(struct.unpack('<I', struct.pack('<f', C))[0])
+        hex_polynomial += f"x^{N - i - 1}: {as_hex}\n"
+
+    print()
+    print(f"Hex polynomial (x):\n{hex_polynomial}")
 
 
 if __name__ == "__main__":

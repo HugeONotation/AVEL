@@ -48,8 +48,8 @@ namespace avel {
         using difference_type = std::ptrdiff_t;
 
         template<class U>
-        class rebind {
-            using other = Aligned_allocator<U>;
+        struct rebind {
+            using other = avel::Aligned_allocator<U, Alignment>;
         };
 
         //=================================================
@@ -105,7 +105,9 @@ namespace avel {
             return reinterpret_cast<pointer>(allocation);
 
             #elif 201703L <= __cplusplus
-            void* allocation = std::aligned_alloc(alignment, n * sizeof(T));
+            std::size_t required_size = n * sizeof(T);
+            std::size_t adjusted_size = (required_size / alignment) * alignment + bool(required_size % alignment) * alignment;
+            void* allocation = std::aligned_alloc(alignment, adjusted_size);
             return reinterpret_cast<pointer>(allocation);
 
             #else

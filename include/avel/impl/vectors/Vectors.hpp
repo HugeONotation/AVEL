@@ -2,9 +2,10 @@
 #define AVEL_IMPL_VECTORS_HPP
 
 #include <cmath>
+#include <cfloat>
 #include <array>
 
-#if defined(AVEL_NEON) && (__cplusplus >= 202002L)
+#if defined(AVEL_NEON) && (__cplusplus >= 202002)
 #include <memory> //Necessary to use std::assume_aligned
 #endif
 
@@ -31,35 +32,7 @@ namespace avel {
 
 
 
-    // Vector, Vector mask, array aliases
-
-    using vec1x8u = Vector<std::uint8_t, 1>;
-    using vec1x8i = Vector<std::int8_t,  1>;
-
-    using vec1x16u = Vector<std::uint16_t, 1>;
-    using vec1x16i = Vector<std::int16_t,  1>;
-
-    using vec1x32u = Vector<std::uint32_t, 1>;
-    using vec1x32i = Vector<std::int32_t,  1>;
-
-    using vec1x64u = Vector<std::uint64_t, 1>;
-    using vec1x64i = Vector<std::int64_t,  1>;
-
-
-
-    using mask1x8u = Vector_mask<std::uint8_t, 1>;
-    using mask1x8i = Vector_mask<std::int8_t,  1>;
-
-    using mask1x16u = Vector_mask<std::uint16_t, 1>;
-    using mask1x16i = Vector_mask<std::int16_t,  1>;
-
-    using mask1x32u = Vector_mask<std::uint32_t, 1>;
-    using mask1x32i = Vector_mask<std::int32_t,  1>;
-
-    using mask1x64u = Vector_mask<std::uint64_t, 1>;
-    using mask1x64i = Vector_mask<std::int64_t,  1>;
-
-
+    // Array aliases
 
     using arr1x8u = std::array<std::uint8_t, 1>;
     using arr1x8i = std::array<std::int8_t,  1>;
@@ -81,7 +54,7 @@ namespace avel {
     V load(const typename V::scalar* p, std::uint32_t n);
 
     template<class V, std::uint32_t N = V::width>
-    V load(const typename V::scalar* ptr) {
+    AVEL_FINL V load(const typename V::scalar* ptr) {
         static_assert(N <= V::width, "Cannot load more elements than width of vector");
         typename std::enable_if<N <= V::width, int>::type dummy_variable = 0;
 
@@ -95,7 +68,7 @@ namespace avel {
     V aligned_load(const typename V::scalar* p, std::uint32_t n);
 
     template<class V, std::uint32_t N = V::width>
-    V aligned_load(const typename V::scalar* ptr) {
+    AVEL_FINL V aligned_load(const typename V::scalar* ptr) {
         static_assert(N <= V::width, "Cannot load more elements than width of vector");
         typename std::enable_if<N <= V::width, int>::type dummy_variable = 0;
 
@@ -106,10 +79,17 @@ namespace avel {
 
 
     template<class V>
-    V gather(const typename V::scalar* ptr, Vector<typename to_index_type<typename V::scalar>::type, V::width> indices, std::uint32_t n);
+    V gather(
+        const typename V::scalar* ptr,
+        Vector<typename to_index_type<typename V::scalar>::type, V::width> indices,
+        std::uint32_t n
+    );
 
     template<class V, std::uint32_t N = V::width>
-    V gather(const typename V::scalar* ptr, Vector<typename to_index_type<typename V::scalar>::type, V::width> indices) {
+    AVEL_FINL V gather(
+        const typename V::scalar* ptr,
+        Vector<typename to_index_type<typename V::scalar>::type, V::width> indices
+    ) {
         static_assert(N <= V::width, "Cannot load more elements than width of vector");
         typename std::enable_if<N <= V::width, int>::type dummy_variable = 0;
 
@@ -122,7 +102,7 @@ namespace avel {
     //=====================================================
 
     template<class V>
-    typename V::primitive decay(V v) {
+    AVEL_FINL typename V::primitive decay(V v) {
         return static_cast<typename V::primitive>(v);
     }
 
@@ -131,17 +111,226 @@ namespace avel {
     //=====================================================
 
     template<class V0, class V1 = V0, class = typename std::enable_if<std::is_same<V0, V1>::value>::type>
-    std::array<V0, 1> convert(V1 v) {
+    [[nodiscard]]
+    AVEL_FINL std::array<V0, 1> convert(V1 v) {
         return {v};
     }
 
     template<class V0, class V1 = V0, class = typename std::enable_if<!std::is_same<V0, V1>::value>::type>
-    std::array<V0, V1::width / V0::width + bool(V1::width % V0::width)> convert(V1 v);
+    [[nodiscard]]
+    AVEL_FINL std::array<V0, V1::width / V0::width + bool(V1::width % V0::width)> convert(V1 v);
+
+    /*
+    template<
+        class V,
+        class = typename avel::enable_if_vector_or_vector_mask_t<V>
+    >
+    [[nodiscard]]
+    AVEL_FINL std::array<V, 1> convert(V v) {
+        return v;
+    }
+
+    template<
+        class V0,
+        class V1 = V0,
+        class = typename avel::enable_if_vector_or_vector_mask_t<V0>,
+        class = typename avel::enable_if_vector_or_vector_mask_t<V1>
+    >
+    [[nodiscard]]
+    AVEL_FINL std::array<V0, V1::width / V0::width + bool(V1::width % V0::width)> convert(V1 v);
+    */
+
+
+    /*
+    template<
+        class V,
+        class = typename avel::enable_if_vector_or_vector_mask_t<V>
+    >
+    [[nodiscard]]
+    AVEL_FINL V widen(V v) {
+        return v;
+    }
+
+    template<
+        class V0,
+        class V1 = V0,
+        class = typename avel::enable_if_vector_or_vector_mask_t<V0>,
+        class = typename avel::enable_if_vector_or_vector_mask_t<V1>,
+        class = typename std::enable_if<std::is_same<typename V0::scalar, typename V1::scalar>::value>::type
+    >
+    [[nodiscard]]
+    AVEL_FINL V0 widen(V1 v);
+    */
+
+/*
+#include "Widen.hpp"
+
+#include "Zero_extend.hpp"
+
+    template<
+        class V0,
+        class V1,
+        class = typename avel::enable_if_integer_vector_t<V0>,
+        class = typename avel::enable_if_integer_vector_t<V1>,
+        class = typename std::enable_if<sizeof(V0::scalar) >= sizeof(V1::scalar)>::type
+    >
+    [[nodiscard]]
+    AVEL_FINL std::array<V0, V1::width / V0::width + bool(V1::width % V0::width)> zero_extend(V1 v) {
+        return avel_impl::zero_extend<V0, V1>(v, V0{});
+    }
+*/
+
+    //=====================================================
+    // Integer comparison functions
+    //=====================================================
+
+    template<std::size_t N, class Uint, class = typename std::enable_if<std::is_unsigned<Uint>::value>>
+    AVEL_FINL avel::Vector_mask<Uint, N> operator==(
+        avel::Vector<Uint, N> lhs,
+        avel::Vector<typename std::make_signed<Uint>::type, N> rhs
+    ) {
+        auto t0 = (lhs == avel::Vector<Uint, N>{rhs});
+        auto t1 = (rhs < avel::Vector<typename std::make_signed<Uint>::type, N>{0});
+        return t0 && !t1;
+    }
+
+    template<std::size_t N, class Int, class = typename std::enable_if<std::is_signed<Int>::value>>
+    AVEL_FINL avel::Vector_mask<Int, N> operator==(
+        avel::Vector<Int, N> lhs,
+        avel::Vector<typename std::make_unsigned<Int>::type, N> rhs
+    ) {
+        auto t0 = (lhs == avel::Vector<Int, N>{rhs});
+        auto t1 = (lhs < avel::Vector<Int, N>{0});
+        return t0 && !t1;
+    }
+
+
+
+    template<std::size_t N, class Uint, class = typename std::enable_if<std::is_unsigned<Uint>::value>>
+    AVEL_FINL avel::Vector_mask<Uint, N> operator!=(
+        avel::Vector<Uint, N> lhs,
+        avel::Vector<typename std::make_signed<Uint>::type, N> rhs
+    ) {
+        auto t0 = (lhs != avel::Vector<Uint, N>{rhs});
+        auto t1 = (rhs < avel::Vector<typename std::make_signed<Uint>::type, N>{0});
+        return t0 || t1;
+    }
+
+    template<std::size_t N, class Int, class = typename std::enable_if<std::is_signed<Int>::value>>
+    AVEL_FINL avel::Vector_mask<Int, N> operator!=(
+        avel::Vector<Int, N> lhs,
+        avel::Vector<typename std::make_unsigned<Int>::type, N> rhs
+    ) {
+        auto t0 = (lhs != avel::Vector<Int, N>{rhs});
+        auto t1 = (lhs < avel::Vector<typename std::make_signed<Int>::type, N>{0});
+        return t0 || t1;
+    }
+
+
+
+    template<std::size_t N, class Uint, class = typename std::enable_if<std::is_unsigned<Uint>::value>>
+    AVEL_FINL avel::Vector_mask<Uint, N> operator<(
+        avel::Vector<Uint, N> lhs,
+        avel::Vector<typename std::make_signed<Uint>::type, N> rhs
+    ) {
+        auto t0 = avel::Vector<typename std::make_signed<Uint>::type, N>{lhs} < rhs;
+        auto t1 = (avel::Vector<typename std::make_signed<Uint>::type, N>{lhs} | rhs) < avel::Vector<Uint, N>{0};
+        return !t0 && t1;
+    }
+
+    template<std::size_t N, class Int, class = typename std::enable_if<std::is_signed<Int>::value>>
+    AVEL_FINL avel::Vector_mask<Int, N> operator<(
+        avel::Vector<Int, N> lhs,
+        avel::Vector<typename std::make_unsigned<Int>::type, N> rhs
+    ) {
+        auto t0 = lhs < avel::Vector<Int, N>{rhs};
+        auto t1 = (lhs | avel::Vector<Int, N>{rhs}) < avel::Vector<Int, N>{0};
+        return t0 || t1;
+    }
+
+
+
+    template<std::size_t N, class Uint, class = typename std::enable_if<std::is_unsigned<Uint>::value>>
+    AVEL_FINL avel::Vector_mask<Uint, N> operator<=(
+        avel::Vector<Uint, N> lhs,
+        avel::Vector<typename std::make_signed<Uint>::type, N> rhs
+    ) {
+        using Sint = typename std::make_signed<Uint>::type;
+
+        auto t0 = avel::Vector<Sint, N>{lhs} < rhs;
+        auto t1 = avel::Vector<Sint, N>{lhs} | rhs < avel::Vector<Sint, N>{0};
+        return avel::Vector_mask<Uint, N>{!t0 && t1};
+    }
+
+    template<std::size_t N, class Int, class = typename std::enable_if<std::is_signed<Int>::value>>
+    AVEL_FINL avel::Vector_mask<Int, N> operator<=(
+        avel::Vector<Int, N> lhs,
+        avel::Vector<typename std::make_unsigned<Int>::type, N> rhs
+    ) {
+        auto t0 = lhs <= avel::Vector<Int, N>{rhs};
+        auto t1 = lhs | avel::Vector<Int, N>{rhs} < avel::Vector<Int, N>{0};
+        return t0 || t1;
+    }
+
+
+
+    template<std::size_t N, class Uint, class = typename std::enable_if<std::is_unsigned<Uint>::value>>
+    AVEL_FINL avel::Vector_mask<Uint, N> operator>(
+        avel::Vector<Uint, N> lhs,
+        avel::Vector<typename std::make_signed<Uint>::type, N> rhs
+    ) {
+        return avel::Vector_mask<Uint, N>{rhs < lhs};
+    }
+
+    template<std::size_t N, class Int, class = typename std::enable_if<std::is_signed<Int>::value>>
+    AVEL_FINL avel::Vector_mask<Int, N> operator>(
+        avel::Vector<Int, N> lhs,
+        avel::Vector<typename std::make_unsigned<Int>::type, N> rhs
+    ) {
+        return avel::Vector_mask<Int, N>{rhs < lhs};
+    }
+
+
+
+    template<std::size_t N, class Uint, class = typename std::enable_if<std::is_unsigned<Uint>::value>>
+    AVEL_FINL avel::Vector_mask<Uint, N> operator>=(
+        avel::Vector<Uint, N> lhs,
+        avel::Vector<typename std::make_signed<Uint>::type, N> rhs
+    ) {
+        return avel::Vector_mask<Uint, N>{rhs <= lhs};
+    }
+
+    template<std::size_t N, class Int, class = typename std::enable_if<std::is_signed<Int>::value>>
+    AVEL_FINL avel::Vector_mask<Int, N> operator>=(
+        avel::Vector<Int, N> lhs,
+        avel::Vector<typename std::make_unsigned<Int>::type, N> rhs
+    ) {
+        return avel::Vector_mask<Int, N>{rhs <= lhs};
+    }
+
+    //=====================================================
+    // Specializations
+    //=====================================================
+
+    ///
+    /// Version of bit_cast which is specific to vectors,
+    /// simplifying the implementation under certain circumstances.
+    ///
+    /// \tparam V0 AVEL vector or vector mask type
+    /// \tparam V1 AVEL vector or vector mask type
+    /// \param v1 Object to cast
+    /// \return Object with equivalent bit-wise representation
+    template<class V0, class V1, typename = typename std::is_same<typename V0::primitive, typename V1::primitive>::value>
+    AVEL_FINL V0 bit_cast(V1 v1) {
+        return V0{decay(v1)};
+    }
 
 }
 
 // Note: The order of inclusion of the following files is meaningful as later
 // files use declarations/definitions contained within earlier files
+
+#include "Vectors_common.hpp"
 
 //Native vectors
 
@@ -157,8 +346,10 @@ namespace avel {
 #include "Vec1x64u.hpp"
 #include "Vec1x64i.hpp"
 
-//#include "Vec1x32f.hpp"
-//#include "Vec1x64f.hpp"
+#include "Vec1x32f.hpp"
+#include "Vec1x64f.hpp"
+
+
 
 //128-bit vectors
 
@@ -175,15 +366,21 @@ namespace avel {
     #include "Vec2x64u.hpp"
     #include "Vec2x64i.hpp"
 
-    //#include "Vec4x32f.hpp"
-    //#include "Vec2x64f.hpp"
-
+    #include "Vec4x32f.hpp"
+    #include "Vec2x64f.hpp"
 #endif
 
-/*
+
+
 //256-bit vectors
 
-#if defined(AVEL_AVX)
+#if defined(AVEL_AVX2)
+    #include "Vec32x8u.hpp"
+    #include "Vec32x8i.hpp"
+
+    #include "Vec16x16u.hpp"
+    #include "Vec16x16i.hpp"
+
     #include "Vec8x32u.hpp"
     #include "Vec8x32i.hpp"
 
@@ -192,47 +389,30 @@ namespace avel {
 
     #include "Vec8x32f.hpp"
     #include "Vec4x64f.hpp"
-
-#endif
-*/
-
-#if defined(AVEL_AVX2)
-    #include "Vec32x8u.hpp"
-    #include "Vec32x8i.hpp"
-
-    //#include "Vec16x16u.hpp"
-    //#include "Vec16x16i.hpp"
-
-    //#include "Vec8x32u.hpp"
-    //#include "Vec8x32i.hpp"
-
-    //#include "Vec4x64u.hpp"
-    //#include "Vec4x64i.hpp"
-
 #endif
 
 //512-bit vectors
 
 #if defined(AVEL_AVX512F)
+    #include "Vec16x32u.hpp"
+    #include "Vec16x32i.hpp"
 
-    //#include "Vec32x16u.hpp"
-    //#include "Vec32x16i.hpp"
+    #include "Vec8x64u.hpp"
+    #include "Vec8x64i.hpp"
 
-    //#include "Vec16x32u.hpp"
-    //#include "Vec16x32i.hpp"
-
-    //#include "Vec8x64u.hpp"
-    //#include "Vec8x64i.hpp"
-
-    //#include "Vec16x32f.hpp"
-    //#include "Vec8x64f.hpp"
-
+    #include "Vec16x32f.hpp"
+    #include "Vec8x64f.hpp"
 #endif
 
 #if defined(AVEL_AVX512BW)
     #include "Vec64x8u.hpp"
     #include "Vec64x8i.hpp"
+
+    #include "Vec32x16u.hpp"
+    #include "Vec32x16i.hpp"
 #endif
+
+
 
 /*
  * Should these specializations be made?

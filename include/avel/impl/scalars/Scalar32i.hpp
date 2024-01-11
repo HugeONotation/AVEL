@@ -5,7 +5,7 @@ namespace avel {
 
     template<>
     [[nodiscard]]
-    AVEL_FINL std::int32_t broadcast_mask<std::int32_t>(bool x) {
+    AVEL_FINL std::int32_t set_bits<std::int32_t>(bool x) {
         return -std::int32_t(x);
     }
 
@@ -37,6 +37,11 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::int32_t countr_one(std::int32_t v) {
         return std::int32_t(countr_one(std::uint32_t(v)));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::int32_t bit_width(std::int32_t x) {
+        return bit_width(std::uint32_t(x));
     }
 
     [[nodiscard]]
@@ -151,6 +156,70 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::int32_t average(std::int32_t a, std::int32_t b) {
         return (std::int64_t(a) + std::int64_t(b)) / 2;
+    }
+
+    //=====================================================
+    // Comparison operators
+    //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_equal(std::uint32_t x, std::int32_t y) {
+        return std::int64_t(x) == std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_equal(std::int32_t x, std::uint32_t y) {
+        return std::int64_t(x) == std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_not_equal(std::uint32_t x, std::int32_t y) {
+        return std::int64_t(x) != std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_not_equal(std::int32_t x, std::uint32_t y) {
+        return std::int64_t(x) != std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less(std::uint32_t x, std::int32_t y) {
+        return std::int64_t(x) < std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less(std::int32_t x, std::uint32_t y) {
+        return std::int64_t(x) < std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less_equal(std::uint32_t x, std::int32_t y) {
+        return std::int64_t(x) <= std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less_equal(std::int32_t x, std::uint32_t y) {
+        return std::int64_t(x) <= std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater(std::uint32_t x, std::int32_t y) {
+        return std::int64_t(x) > std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater(std::int32_t x, std::uint32_t y) {
+        return std::int64_t(x) > std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater_equal(std::uint32_t x, std::int32_t y) {
+        return std::int64_t(x) >= std::int64_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater_equal(std::int32_t x, std::uint32_t y) {
+        return std::int64_t(x) >= std::int64_t(y);
     }
 
 }

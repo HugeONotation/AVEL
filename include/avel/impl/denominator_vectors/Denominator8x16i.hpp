@@ -6,7 +6,7 @@ namespace avel {
     using Denom8x16i = Denominator<vec8x16i>;
 
     template<>
-    class alignas(64) Denominator<vec8x16i> {
+    class Denominator<vec8x16i> {
     public:
 
         template<class U>
@@ -123,7 +123,7 @@ namespace avel {
             auto x = bit_cast<vec8x16i>(tmp3_lo);
             auto y = bit_cast<vec8x16i>(tmp3_hi << 16);
 
-            auto mask = mask8x16i{{
+            auto mask = mask8x16i{arr8xb{
                 false, true, false, true,
                 false, true, false, true
             }};
@@ -132,6 +132,16 @@ namespace avel {
         }
 
     };
+
+    AVEL_FINL vec8x16i& operator/=(vec8x16i& lhs, Denom8x16i rhs) {
+        lhs = lhs / rhs;
+        return lhs;
+    }
+
+    AVEL_FINL vec8x16i& operator%=(vec8x16i& lhs, Denom8x16i rhs) {
+        lhs = lhs % rhs;
+        return lhs;
+    }
 
 }
 

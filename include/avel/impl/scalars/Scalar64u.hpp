@@ -15,17 +15,22 @@ namespace avel {
 
     template<>
     [[nodiscard]]
-    AVEL_FINL std::uint64_t broadcast_mask<std::uint64_t>(bool x) {
+    AVEL_FINL std::uint64_t set_bits<std::uint64_t>(bool x) {
         return -std::uint64_t(x);
     }
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t popcount(std::uint64_t x) {
-        #if defined(AVEL_POPCNT)
+        #if defined(AVEL_POPCNT) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         return _mm_popcnt_u64(x);
+
+        #elif defined(AVEL_POPCNT) && defined(AVEL_MSVC)
+        return __popcnt64(x);
+
         #elif defined(AVEL_ARM) && (defined(AVEL_GCC) || defined(AVEL_CLANG))
         //TODO: Perform manual optimization for this
         return __builtin_popcountl(x);
+
         #else
         x = x - ((x >> 1) & 0x5555555555555555);
         x = ((x >> 2) & 0x3333333333333333) + (x & 0x3333333333333333);
@@ -39,8 +44,11 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t byteswap(std::uint64_t x) {
-        #if defined(AVEL_X86)
+        #if defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         return _bswap64(x);
+
+        #elif defined(AVEL_MSVC)
+        return _byteswap_uint64(x);
 
         #else
         std::uint64_t ret = 0x00;
@@ -59,7 +67,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t countl_zero(std::uint64_t x) {
-        #if defined(AVEL_LZCNT)
+        #if defined(AVEL_LZCNT) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         return _lzcnt_u64(x);
 
         #elif defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG))
@@ -69,9 +77,17 @@ namespace avel {
             return 64;
         }
 
-        #elif defined(AVEL_ICX) && defined(AVEL_LZCNT)
+        #elif defined(AVEL_ICPX) && defined(AVEL_LZCNT)
         if (x) {
             return _lzcnt_u64(x);
+        } else {
+            return 64;
+        }
+
+        #elif defined(AVEL_MSVC)
+        unsigned long result;
+        if (_BitScanReverse64(&result, x)) {
+            return 63 - result;
         } else {
             return 64;
         }
@@ -112,13 +128,14 @@ namespace avel {
     AVEL_FINL std::uint64_t countl_one(std::uint64_t x) {
         #if defined(AVEL_X86)
         return countl_zero(~x);
+
         #else
         //TODO: Utilize lookup table
         std::uint64_t sum = (x == 0xFFFFFFFFFFFFFFFFul);
 
         bool b0 = (0xFFFFFFFF00000000u & x) == 0xFFFFFFFF00000000u;
-        sum += (b0 * 16);
-        x <<= (b0 * 16);
+        sum += (b0 * 32);
+        x <<= (b0 * 32);
 
         bool b1 = (0xFFFF000000000000u & x) == 0xFFFF000000000000u;
         sum += (b1 * 16);
@@ -144,14 +161,22 @@ namespace avel {
     }
     [[nodiscard]]
     AVEL_FINL std::uint64_t countr_zero(std::uint64_t x) {
-        #if defined(AVEL_BMI)
+        #if defined(AVEL_BMI) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         return __tzcnt_u64(x);
 
-        #elif defined(AVEL_X86)
+        #elif defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         if (x == 0) {
             return 64;
         } else {
             return __builtin_ctzll(x);
+        }
+
+        #elif defined(AVEL_MSVC)
+        unsigned long bsr;
+        if (_BitScanForward64(&bsr, x)) {
+            return bsr;
+        } else {
+            return 64;
         }
 
         #else
@@ -164,16 +189,18 @@ namespace avel {
 
         x &= -x;
 
-        b = bool(x & 0xAAAAAAAAu);
+        b = bool(x & 0xAAAAAAAAAAAAAAAAull);
         ret |= b;
-        b = bool(x & 0xCCCCCCCCu);
+        b = bool(x & 0xCCCCCCCCCCCCCCCCull);
         ret |= (b << 1);
-        b = bool(x & 0xF0F0F0F0u);
+        b = bool(x & 0xF0F0F0F0F0F0F0F0ull);
         ret |= (b << 2);
-        b = bool(x & 0xFF00FF00u);
+        b = bool(x & 0xFF00FF00FF00FF00ull);
         ret |= (b << 3);
-        b = bool(x & 0xFFFF0000u);
+        b = bool(x & 0xFFFF0000FFFF0000ull);
         ret |= (b << 4);
+        b = bool(x & 0xFFFFFFFF00000000ull);
+        ret |= (b << 5);
 
         return ret;
         #endif
@@ -186,17 +213,46 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t bit_width(std::uint64_t x) {
+        #if defined(AVEL_LZCNT) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        return 64 - _lzcnt_u64(x);
+
+        #elif defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        if (x == 0) {
+            return 0;
+        } else {
+            return 64 - __builtin_clzll(x);
+        }
+
+        #elif defined(AVEL_MSVC)
+        unsigned long bsr;
+        if (_BitScanReverse64(&bsr, x)) {
+            return bsr + 1;
+        } else {
+            return 0;
+        }
+
+        #else
         return 64 - countl_zero(x);
+
+        #endif
     }
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t bit_floor(std::uint64_t x) {
-        #if defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG))
+        #if defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         if (x == 0) {
             return 0;
         }
 
         return std::uint64_t{1} << (63 - __builtin_clzll(x));
+
+        #elif defined(AVEL_MSVC)
+        unsigned long bsr;
+        if (_BitScanReverse64(&bsr, x)) {
+            return std::uint64_t(1) << bsr;
+        } else {
+            return 0;
+        }
 
         #else
         //TODO: Consider using lookup table
@@ -217,7 +273,12 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t bit_ceil(std::uint64_t x) {
-        #if defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG))
+        #if defined(AVEL_LZCNT) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        auto sh = -_lzcnt_u64(x - 1);
+        auto result = _lrotl(x <= 0x8000000000000000ull, sh);
+        return result;
+
+        #elif defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         if (x == 0) {
             return 1;
         }
@@ -225,13 +286,14 @@ namespace avel {
         auto tmp = std::uint64_t{1} << (63 - __builtin_clzll(x));
         return tmp << (tmp != x);
 
-        #elif defined(AVEL_ICX) && defined(AVEL_LZCNT)
-        if (x == 0) {
+        #elif defined(AVEL_MSVC)
+        unsigned long bsr;
+        if (_BitScanReverse64(&bsr, x)) {
+            auto tmp = std::uint64_t(1) << bsr;
+            return tmp << (tmp != x);
+        } else {
             return 1;
         }
-
-        auto tmp = std::uint64_t{1} << (63 - _lzcnt_u64(x));
-        return tmp << (tmp != x);
 
         #else
         if (x == 0) {
@@ -262,8 +324,12 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t rotl(std::uint64_t x, long long s) {
-        #if defined(AVEL_X86)
+        #if defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         return _lrotl(x, s);
+
+        #elif defined(AVEL_X86) && defined(AVEL_MSVC)
+        return _rotl64(x, s);
+
         #else
         s &= 0x3F;
         if (s == 0) {
@@ -276,8 +342,12 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::uint64_t rotr(std::uint64_t x, long long s) {
-        #if defined(AVEL_X86)
+        #if defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
         return _lrotr(x, s);
+
+        #elif defined(AVEL_X86) && defined(AVEL_MSVC)
+        return _rotr64(x, s);
+
         #else
         s &= 0x3F;
         if (s == 0) {
@@ -364,7 +434,7 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::uint64_t midpoint(std::uint64_t a, std::uint64_t b) {
         std::uint64_t t0 = a & b & std::uint64_t{0x1};
-        std::uint64_t t1 = (a | b) & std::uint64_t{0x1} & avel::broadcast_mask<std::uint64_t>(a > b);
+        std::uint64_t t1 = (a | b) & std::uint64_t{0x1} & avel::set_bits<std::uint64_t>(a > b);
         std::uint64_t t2 = t0 | t1;
         return (a >> 1) + (b >> 1) + t2;
     }

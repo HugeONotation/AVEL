@@ -1,80 +1,123 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
+
+"""
+Testing script which is used to run AVEL's tests.
+
+Identifies CPU feature combinations used within the avel/impl/vector folder and
+only enables the relevant tests to cut down on testing times
+
+Example usages:
+Run all tests for x86 CPUs: run_avel_tests.py -A"x86" -C"/usr/bin/g++-9"
+Run all tests for ARM CPUs: run_avel_tests.py -A"arm" -C"/usr/bin/g++-9"
+Run all tests for x86 CPUs using Intel SDE: run_avel_tests -A"x86" -C"/usr/bin/g++-9" -L"sde64 -- <exec>"
+
+"""
 
 import os
 import sys
 import shutil
 import re
 import copy
+
+from math import floor
+from multiprocessing import cpu_count
+from threading import Thread, Lock, Semaphore
 from itertools import product
+from functools import reduce
 
-# Path to compilers and names used for their build directories
-compilers = [
-    ['/usr/bin/g++-12', 'gnu-12'],
-    #['/usr/bin/g++-11', 'gnu-11'],
-    #['/usr/bin/g++-10', 'gnu-10'],
-    #['/usr/bin/g++-9',  'gnu-9'],
-    #['/usr/bin/clang++-14', 'clang-14'],
-    #['/usr/bin/clang++-13', 'clang-13'],
-    #['/usr/bin/clang++-12', 'clang-12'],
-    #['/usr/bin/clang++-11', 'clang-11'],
-    #['/opt/intel/oneapi/compiler/2023.0.0/linux/bin/icpx', 'icpx-2023.0.0']
-]
-
-# Map associating feature macros with their implied features, according to AVEL
+"""
+Map associating feature macros with their directly implied features, according to AVEL
+"""
 features_x86 = {
-    'AVEL_X86':             ['',                  []],
-    'AVEL_POPCNT':          ['-mpopcnt',          ['AVEL_X86']],
-    'AVEL_LZCNT':           ['-mlzcnt',           ['AVEL_X86']],
-    'AVEL_BMI':             ['-mbmi',             ['AVEL_X86']],
-    'AVEL_BMI2':            ['-mbmi2',            ['AVEL_BMI']],
-    'AVEL_SSE2':            ['-msse2',            ['AVEL_X86']],
-    'AVEL_SSE3':            ['-msse3',            ['AVEL_SSE2']],
-    'AVEL_SSSE3':           ['-mssse3',           ['AVEL_SSE3']],
-    'AVEL_SSE41':           ['-msse4.1',          ['AVEL_SSSE3', 'AVEL_POPCNT']],
-    'AVEL_SSE42':           ['-msse4.2',          ['AVEL_SSE41']],
-    'AVEL_AVX':             ['-mavx',             ['AVEL_SSE42']],
-    'AVEL_AVX2':            ['-mavx2',            ['AVEL_AVX']],
-    'AVEL_FMA':             ['-mfma',             ['AVEL_AVX']],
-    'AVEL_AVX512F':         ['-mavx512f',         ['AVEL_AVX2', 'AVEL_FMA']],
-    'AVEL_AVX512BW':        ['-mavx512bw',        ['AVEL_AVX512F']],
-    'AVEL_AVX512DQ':        ['-mavx512dq',        ['AVEL_AVX512F']],
-    'AVEL_AVX512VL':        ['-mavx512vl',        ['AVEL_AVX512F']],
-    'AVEL_AVX512CD':        ['-mavx512cd',        ['AVEL_AVX512F']],
+    'AVEL_X86': ['', []],
+    'AVEL_POPCNT': ['-mpopcnt', ['AVEL_X86']],
+    'AVEL_LZCNT': ['-mlzcnt', ['AVEL_X86']],
+    'AVEL_BMI': ['-mbmi', ['AVEL_X86']],
+    'AVEL_BMI2': ['-mbmi2', ['AVEL_BMI']],
+    'AVEL_SSE2': ['-msse2', ['AVEL_X86']],
+    'AVEL_SSE3': ['-msse3', ['AVEL_SSE2']],
+    'AVEL_SSSE3': ['-mssse3', ['AVEL_SSE3']],
+    'AVEL_SSE41': ['-msse4.1', ['AVEL_SSSE3', 'AVEL_POPCNT']],
+    'AVEL_SSE42': ['-msse4.2', ['AVEL_SSE41']],
+    'AVEL_AVX': ['-mavx', ['AVEL_SSE42']],
+    'AVEL_AVX2': ['-mavx2', ['AVEL_AVX']],
+    'AVEL_FMA': ['-mfma', ['AVEL_AVX']],
+    'AVEL_AVX512F': ['-mavx512f', ['AVEL_AVX2', 'AVEL_FMA']],
+    'AVEL_AVX512BW': ['-mavx512bw', ['AVEL_AVX512F']],
+    'AVEL_AVX512DQ': ['-mavx512dq', ['AVEL_AVX512F']],
+    'AVEL_AVX512VL': ['-mavx512vl', ['AVEL_AVX512F']],
+    'AVEL_AVX512CD': ['-mavx512cd', ['AVEL_AVX512F']],
     'AVEL_AVX512VPOPCNTDQ': ['-mavx512vpopcntdq', ['AVEL_AVX512F']],
-    'AVEL_AVX512BITALG':    ['-mavx512bitalg',    ['AVEL_AVX512F']],
-    'AVEL_AVX512VBMI':      ['-mavx512vbmi',      ['AVEL_AVX512F']],
-    'AVEL_AVX512VBMI2':     ['-mavx512vbmi2',     ['AVEL_AVX512F']],
-    'AVEL_GFNI':            ['-mgfni',            ['AVEL_AVX512F']]
+    'AVEL_AVX512BITALG': ['-mavx512bitalg', ['AVEL_AVX512F']],
+    'AVEL_AVX512VBMI': ['-mavx512vbmi', ['AVEL_AVX512F']],
+    'AVEL_AVX512VBMI2': ['-mavx512vbmi2', ['AVEL_AVX512F']],
+    'AVEL_GFNI': ['-mgfni', ['AVEL_AVX512F']],
+    #'AVEL_AVX10_1': ['-mavx10.1', ['AVEL_AVX2']],
+    #'AVEL_AVX10_2': ['-mavx10.2', ['AVEL_AVX10_1']],
 }
 
-feature_arm = {
-    'AVEL_ARM':     ['', []],
-    'AVEL_NEON':    ['', ['AVEL_ARM']],
-    'AVEL_ARRCH64': ['', ['AVEL_ARM']]
+"""
+Map associating feature macros with their implied features, according to AVEL
+"""
+features_arm = {
+    'AVEL_ARM': ['', []],
+    'AVEL_NEON': ['', ['AVEL_ARM']],
+    'AVEL_AARCH64': ['', ['AVEL_ARM']]
 }
 
 target_features = features_x86
 
+"""
+List of AVEL's compiler macros
+"""
 compiler_macros = [
     'AVEL_GCC',
     'AVEL_CLANG',
     'AVEL_ICPX'
 ]
 
+"""
+Dictionary containing command line parameters
+"""
+parameters = {}
 
-# def extract_features(line: str):
-#    # If the condition is more complex than an intersection of features, it's
-#    # currently ok to skip the specific combination as they'll be handled via
-#    # other test configurations
-#    if '||' in line or '!' in line:
-#        return tuple()
-#
-#    used_features = [macro for macro in feature_macros if ('defined(' + macro + ')') in line]
-#    used_features = sorted(used_features)
-#    return tuple(used_features)
+"""
+Path to compilers and names used for their build directories
+"""
+compilers = []
+
+"""
+List that is used to store status codes produced by test cases after running
+"""
+test_exit_codes = []
+
+"""
+List that is used to store information about tests cases to print out in case of failure
+"""
+test_run_infos = []
+
+
+def unroll_feature_implications():
+    """
+    Applies transitive implications to the target_features map, making each feature contains its indirect implications
+    in addition to its direct implications
+    """
+    for key in target_features:
+        implications = target_features[key][1]
+        for implication in implications:
+            implied_features = target_features[implication][1]
+            target_features[key][1] += implied_features
 
 
 def compiler_path_to_macro(compiler_path):
+    """
+    Attempts to convert a compiler's path the AVEL macro corresponding to that
+    compiler
+    :param compiler_path: Path to compiler
+    :return: string containing macro that AVEL uses to indicate which compiler
+    is being used
+    """
+
     if 'g++' in compiler_path:
         return 'AVEL_GCC'
     elif 'clang++' in compiler_path:
@@ -82,25 +125,29 @@ def compiler_path_to_macro(compiler_path):
     elif 'icpx' in compiler_path:
         return 'AVEL_ICPX'
     else:
-        print('Unrecognized compiler name')
+        print('Compiler not recognized as g++, clang++, or icpx.')
         exit(1)
 
 
-# Converts a preprocessor line to a boolean expression which can be evaluated
-# via the eval() function
-#
-# Returns a tuple containing the boolean expression as a string and a list of
-# strings which contain the names of the variables used in the expression
-#
-def construct_expression(line):
+def macro_to_boolean_expression(line):
+    """
+    Converts a preprocessor line to a boolean expression which can be evaluated
+    via the eval() function
+
+    :param line: A string containing a line from the AVEL code base which checks
+    if a certain combination of features are satisfied
+    :return: A tuple containing the boolean expression as a string and a list of
+    strings which contain the names of the variables used in the expression
+    """
+
     line = line.replace('#if', '')
     line = line.replace('#elif', '')
 
-    line = line.replace('||', 'or')
-    line = line.replace('&&', 'and')
+    line = line.replace('||', ' or ')
+    line = line.replace('&&', ' and ')
 
-    line = line.replace('|', 'or')
-    line = line.replace('&', 'and')
+    line = line.replace('|', ' or ')
+    line = line.replace('&', ' and ')
 
     line = line.replace('__cplusplus', '201103')
 
@@ -121,6 +168,13 @@ def construct_expression(line):
 
 
 def substitute_variable(expression, variable_name, value):
+    """
+
+    :param expression:
+    :param variable_name:
+    :param value:
+    :return:
+    """
     search_pattern = r'\b' + variable_name + r'\b'
     return re.sub(search_pattern, value, expression)
 
@@ -143,6 +197,9 @@ def find_variable_assignment(expression, variable_list):
     num_vars = len(variable_list)
     possible_solutions = [seq for seq in product(('True', 'False'), repeat=num_vars)]
 
+    # Prefer solutions which enable the smallest number of features
+    possible_solutions = sorted(possible_solutions, key=lambda x: len(x))
+
     assignments = {}
     for solution in possible_solutions:
         assignments.update(zip(variable_list, solution))
@@ -158,7 +215,8 @@ def identify_feature_combinations(file_path):
     file.close()
 
     def is_feature_check_macro(l: str):
-        return (('#if' in l) or ('#elif' in l)) and ('defined' in l) and ('AVEL' in l)
+        l = l.strip()
+        return (not l.startswith('//')) and (('#if' in l) or ('#elif' in l)) and ('defined' in l) and ('AVEL' in l)
 
     expressions_and_variables = {}
 
@@ -166,7 +224,7 @@ def identify_feature_combinations(file_path):
         if not is_feature_check_macro(line):
             continue
 
-        (expression, variables) = construct_expression(line)
+        (expression, variables) = macro_to_boolean_expression(line)
 
         expressions_and_variables[expression] = variables
 
@@ -195,8 +253,7 @@ def identify_vector_features():
     queue = [path for path in directory_contents if os.path.isfile(vector_implementation_path + path)]
 
     # Filter only vector headers
-    queue = [file_name for file_name in queue if ('x' in file_name and 'f' not in file_name)]
-    # TODO: Remove the test for files containing f once implementations of float vectors are added
+    queue = [file_name for file_name in queue if ('x' in file_name)]
 
     names_and_features = {}
     for file_name in queue:
@@ -208,26 +265,7 @@ def identify_vector_features():
     return names_and_features
 
 
-def run_test(compiler_path, build_dir_name, feature_assignments, test_groups):
-    print('\nRunning test:')
-    print('Flags:')
-    for variable, value in feature_assignments.items():
-        if value == 'True':
-            print(target_features[variable][0])
-
-    print()
-    print('Feature variables:')
-    for variable, value in feature_assignments.items():
-        if value == 'True':
-            print(variable)
-
-    print()
-    print('Test group variables:')
-    for test_group_name, value  in test_groups.items():
-        if value:
-            variable = 'AVEL_ENABLE_' + test_group_name.upper() + '_TESTS'
-            print(variable)
-
+def run_test_case(compiler_path, build_dir_name, feature_assignments, test_groups, test_index):
     flags = '-w -std=c++11'
     cmake_variables = ''
 
@@ -258,51 +296,50 @@ def run_test(compiler_path, build_dir_name, feature_assignments, test_groups):
         '-DAVEL_BUILD_TESTS:BOOL=ON{} ' \
         '-DCMAKE_CXX_FLAGS="{}"'
     cmake_command = cmake_command_format_string.format(build_path, compiler_path, cmake_variables, flags)
-    print(cmake_command)
 
-    #return False
+    run_info = [None, None, None, None, None]
+    test_run_infos[test_index] = run_info
 
-    ret = os.system(cmake_command)
-    if ret != 0:
-        print()
-        print("Testing script: ")
-        print("Testing failed for")
-        print("Compiler:", compiler_path)
-        print("Compiler flags:", flags)
-        print("CMake Variables:", cmake_variables)
-        failed = True
-        return failed
+    run_info[0] = flags
+    run_info[1] = cmake_variables
+    run_info[2] = cmake_command
+
+    exit_code = os.system(cmake_command)
+    if exit_code != 0:
+        print('Testing script')
+        print('CMake command failed')
+        return
 
     make_command = 'make AVEL_TESTS -C ./test_build_dirs/{}'.format(build_dir_name)
-    ret = os.system(make_command)
-    if ret != 0:
-        print()
-        print("Testing script: ")
-        print("Testing failed for")
-        print("Compiler:", compiler_path)
-        print("Compiler flags:", flags)
-        print("CMake Variables:", cmake_variables)
-        failed = True
-        return failed
+    run_info[3] = make_command
 
-    run_command = './test_build_dirs/{}/tests/AVEL_TESTS'.format(build_dir_name)
+    memory_semaphore.acquire()
+    exit_code = os.system(make_command)
+    memory_semaphore.release()
 
-    ret = os.system(run_command)
-    if ret != 0:
-        print()
-        print("Testing script: ")
-        print("Testing failed for")
-        print("Compiler:", compiler_path)
-        print("Compiler flags:", flags)
-        print("CMake Variables:", cmake_variables)
-        failed = True
-        return failed
+    if exit_code != 0:
+        print('Testing script')
+        print('Make command failed')
+        return
+
+    run_command = ''
+    if 'launcher' not in parameters or parameters['launcher'] == '':
+        run_command = './test_build_dirs/{}/tests/AVEL_TESTS'.format(build_dir_name)
+    elif '<exec>' in parameters['launcher']:
+        run_command = parameters['launcher'].replace('<exec>',
+                                                     './test_build_dirs/{}/tests/AVEL_TESTS'.format(build_dir_name))
+    else:
+        run_command = parameters['launcher'] + ' ./test_build_dirs/{}/tests/AVEL_TESTS'.format(build_dir_name)
+
+    run_info[4] = run_command
+
+    exit_code = os.system(run_command)
+    if exit_code != 0:
+        return
 
     shutil.rmtree(build_path)
 
-    print()
-
-    return False
+    test_exit_codes[test_index] = True
 
 
 def substitute_compiler_macros(compiler_macro, names_and_features):
@@ -325,7 +362,7 @@ def substitute_compiler_macros(compiler_macro, names_and_features):
 
 def expand_assignments(assignments):
     ret = []
-    # TODO: Tidy this up
+    # TODO: Replace with solution with less nesting
     for assignment in assignments:
         new_assignment = {}
         for variable, value in assignment.items():
@@ -339,7 +376,27 @@ def expand_assignments(assignments):
     return ret
 
 
-def test_on_compiler(compiler_path, build_dir_name, names_and_features):
+work_queue = []
+
+work_queue_lock = Lock()
+
+memory_semaphore = None
+
+
+def thread_worker():
+    while True:
+        work_queue_lock.acquire()
+        if not work_queue:
+            work_queue_lock.release()
+            return
+
+        task = work_queue.pop(0)
+        work_queue_lock.release()
+
+        run_test_case(*task)
+
+
+def test_on_compiler(compiler_index, compiler_path, build_dir_name, names_and_features):
     substitute_compiler_macros(compiler_path_to_macro(compiler_path), names_and_features)
 
     # Gather all expressions
@@ -368,8 +425,9 @@ def test_on_compiler(compiler_path, build_dir_name, names_and_features):
     feature_order = dict(zip(target_features.keys(), range(0, len(target_features))))
     expression_solutions = sorted(expression_solutions, key=lambda x: [feature_order[x] for x in x.keys()])
 
-    failed = False
-    for partial_solution in expression_solutions:
+    run_test_parameters = []
+
+    for index, partial_solution in enumerate(expression_solutions):
         # Construct feature combinations to test with
         full_variable_assignments = dict(zip(target_features.keys(), ['False'] * len(target_features)))
         for variable in partial_solution:
@@ -385,9 +443,13 @@ def test_on_compiler(compiler_path, build_dir_name, names_and_features):
                     break
 
         # Run tests with specified features enabled
-        failed |= run_test(compiler_path, build_dir_name, full_variable_assignments, test_groups)
-        if failed:
-            return failed
+        run_test_parameters.append([
+            compiler_path,
+            build_dir_name + '/' + str(index),
+            full_variable_assignments,
+            test_groups,
+            index
+        ])
 
         # Remove feature combinations that were satisfied by the previous test
         for vec_name in names_and_features:
@@ -396,48 +458,220 @@ def test_on_compiler(compiler_path, build_dir_name, names_and_features):
             names_and_features[vec_name] = \
                 {k: v for k, v in feature_map.items() if not evaluate_expression(k, full_variable_assignments)}
 
-        # Remove vectors which have no more feature combinations to check for
-        #names_and_features = {k: v for k, v in names_and_features.items() if len(v) > 0}
+    # Create list of booleans based on test mask
+    format_string = '#0' + str(2 + len(expression_solutions)) + 'b'
+    test_enabled_list = [b == '0' for b in format(parameters['test_mask'], format_string)[2:][::-1]]
 
-    return failed
+    # Compute number of builds to run in parallel based on memory contraints
+    memory_bytes = os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES')
+    memory_gigs = memory_bytes / (1024 * 1024 * 1024)
+    # 2 gigs for OS, 3 gigs for build. Values derived empirically from Ubuntu 22.10 machine
+    safe_parallel_build_count = min(int(floor((memory_gigs - 2) / 3)), cpu_count())
+
+    global memory_semaphore
+    memory_semaphore = Semaphore(safe_parallel_build_count)
+
+    # Launch a thread for each test case that is enabled
+    global test_exit_codes
+    test_exit_codes = [False] * len(expression_solutions)
+
+    global test_run_infos
+    test_run_infos = [None] * len(expression_solutions)
+
+    # Enqueue test cases into work queue
+    for params, test_enabled in zip(run_test_parameters, test_enabled_list):
+        if test_enabled:
+            work_queue.append(params)
+
+
+    # Print Debug info
+    print(
+        'Testing script: Running {} tests on {} threads on machine with {:.3f}GiB of memory'.format(
+            len(work_queue),
+            cpu_count(),
+            memory_gigs),
+        flush=True
+    )
+
+    # Launch workers threads
+    threads = []
+    for i in range(0, cpu_count()):
+        th = Thread(target=thread_worker, args=[])
+        threads.append(th)
+        th.start()
+
+    try:
+        # Wait for threads to complete their work
+        for th in threads:
+            th.join()
+    except KeyboardInterrupt:
+        is_run_successful = all(test_exit_codes)
+        success_string = reduce(lambda byte, bit: byte * 2 + bit, test_exit_codes, 0)
+
+        return is_run_successful, success_string
+
+    # Print results of tests if any failed
+    print('Testing script:')
+    for result, run_infos in zip(test_exit_codes, test_run_infos):
+        if result or not run_infos:
+            continue
+
+        print('Test executable reported failure for:')
+        print('Compiler:', compiler_path)
+        print('Compiler flags: ', run_infos[0])
+        print('CMake variables: ', run_infos[1])
+        print('CMake command: ', run_infos[2])
+        print('Make command: ', run_infos[3])
+        print('run command: ', run_infos[4])
+        print()
+
+    is_run_successful = all(test_exit_codes)
+    success_string = reduce(lambda byte, bit: byte * 2 + bit, test_exit_codes, 0)
+
+    return is_run_successful, success_string
+
+
+def parse_command_line_arguments(arguments):
+    """
+    Populates the global parameters map with the contents
+
+    :param arguments: List of strings containing command line arguments passed to script
+    :return: dictionary associating recognized parameters to values specified at command line
+    """
+    results = {}
+    for argument in arguments:
+        if argument.startswith('-A'):
+            tail = argument.lstrip('-A')
+            results['arch'] = tail
+            continue
+
+        if argument.startswith('-L'):
+            tail = argument.lstrip('-L')
+            results['launcher'] = tail
+            continue
+
+        if argument.startswith('-T'):
+            tail = argument.lstrip('-T')
+            results['test_start'] = tail
+            continue
+
+        if argument.startswith('-C'):
+            tail = argument.lstrip('-C')
+            results['compiler_list_str'] = tail
+            continue
+
+        print('Unrecognized parameter: ', argument)
+        exit(1)
+
+    global parameters
+    parameters = results
+
+
+def validate_command_line_arguments():
+    # Handle case where script is invoked with no recognized parameters
+    if not parameters:
+        print('Recognized parameters:')
+        print('  -A    (Required) The target architecture to run tests on. Should be either \'x86\' or \'arm\'')
+        print('  -C    (Required) A colon-delimited list of paths to compilers to run the tests with.')
+        print('  -L    (Optional) Command which is invoked to run executable. If this parameter contains \'<exec>\' t'
+              'en it will be replaced with the path of the test executable. Otherwise, the path of test executable '
+              'will be appended to the end of this parameter. If this parameter is not specified, the test executable '
+              'is invoked directly.')
+        print('  -T   (Optional) A pair of hexadecimal strings seperated by a color. Indicate which tests have '
+              'previously passed, allowing the script to avoid rerunning tests that have completed in previous runs. '
+              'The script will print out this value upon completion if any tests failed.')
+
+        exit(1)
+
+    # Handle arch argument
+    if 'arch' not in parameters:
+        print('Target architecture not specified!')
+        print('Specify the -A parameter to be either \'x86\' or \'arm\'')
+        exit(1)
+
+    global target_features
+    if parameters['arch'] == 'x86':
+        target_features = features_x86
+    elif parameters['arch'] == 'arm':
+        target_features = features_arm
+    else:
+        print('Unrecognized architecture: ', parameters['arch'])
+        exit(1)
+
+    # Handle compiler paths argument
+    if 'compiler_list_str' not in parameters:
+        print('No compiler specified')
+        exit(1)
+
+    global compilers
+    compilers = []
+
+    compiler_paths = parameters['compiler_list_str'].split(':')
+    for compiler_path in compiler_paths:
+        compilers.append([compiler_path, str(hash(compiler_path))])
+
+    # Handle test start argument
+    if 'test_start' in parameters:
+        delimited = parameters['test_start'].split(':')
+        if len(delimited) != 2:
+            print('Expected exactly one colon in parameter -T:{}'.format(parameters['test_start']))
+
+        starting_compiler_index_str, test_mask_str = delimited
+
+        try:
+            starting_compiler_index = int(starting_compiler_index_str, 16)
+            parameters['starting_compiler_index'] = starting_compiler_index
+
+        except ValueError:
+            print('-{} could not be parsed as a hexadecimal string'.format(starting_compiler_index_str))
+            exit(1)
+
+        try:
+            test_mask = int(test_mask_str, 16)
+            parameters['test_mask'] = test_mask
+
+        except ValueError:
+            print('{} could not be parsed as a hexadecimal string'.format(test_mask_str))
+            exit(1)
+    else:
+        parameters['starting_compiler_index'] = 0
+        parameters['test_mask'] = 0
 
 
 def main():
-    global target_features
+    parse_command_line_arguments(sys.argv[1:])
+    validate_command_line_arguments()
 
-    if len(sys.argv) > 1:
-        if sys.argv[1] == 'x86':
-            target_features = features_x86
-        elif sys.argv[1] == 'arm':
-            target_features = feature_arm
-        else:
-            print('Unrecognized command line parameter: ', sys.argv[1])
-            exit(1)
-
-    else:
-        print('Pass "x86" or "arm" as a parameter')
-        exit(1)
-
-    failed = False
-
-    # Unroll feature implications
-    for key in target_features:
-        implications = target_features[key][1]
-        for implication in implications:
-            implied_features = target_features[implication][1]
-            target_features[key][1] += implied_features
+    unroll_feature_implications()
 
     # Identify features used by vector implementations
-    names_and_features = identify_vector_features()
+    vector_names_and_required_features = identify_vector_features()
 
     # Run tests
-    for (path, build_dir_name) in compilers:
-        failed |= test_on_compiler(path, build_dir_name, copy.deepcopy(names_and_features))
-        if failed:
-            print("\nTesting script: Encountered failed tests")
-            return
+    for (compiler_index, compiler) in enumerate(compilers):
+        if compiler_index < parameters['starting_compiler_index']:
+            continue
 
-    print("\nTesting script: All tests passed")
+        (compiler_path, build_directory) = compiler
+
+        success, success_string = test_on_compiler(
+            compiler_index,
+            compiler_path,
+            build_directory,
+            copy.deepcopy(vector_names_and_required_features)
+        )
+
+        if not success:
+            print()
+            print('Testing script: Tests failed')
+            print('Run again with -T"0x{:x}:0x{:x}" to skip tests that have already passed'.format(
+                compiler_index,
+                success_string
+            ))
+
+            exit(1)
+
+    print('\nTesting script: All tests passed')
 
 
 if __name__ == '__main__':

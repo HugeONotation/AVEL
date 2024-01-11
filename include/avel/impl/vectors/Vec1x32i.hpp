@@ -15,10 +15,10 @@ namespace avel {
     // Forward declarations
     //=====================================================
 
-    div_type<vec1x32i> div(vec1x32i numerator, vec1x32i denominator);
-    vec1x32i broadcast_mask(mask1x32i m);
-    vec1x32i blend(vec1x32i a, vec1x32i b, mask1x32i m);
-    vec1x32i negate(vec1x32i m, vec1x32i x);
+    div_type<vec1x32i> div(vec1x32i x, vec1x32i y);
+    vec1x32i set_bits(mask1x32i m);
+    vec1x32i blend(mask1x32i m, vec1x32i a, vec1x32i b);
+    vec1x32i negate(mask1x32i m, vec1x32i x);
 
 
 
@@ -38,7 +38,7 @@ namespace avel {
         // Type aliases
         //=================================================
 
-        using primitive = std::uint8_t;
+        using primitive = bool;
 
     private:
 
@@ -58,11 +58,8 @@ namespace avel {
         AVEL_FINL explicit Vector_mask(Vector_mask<U, width> m):
             Vector_mask(convert<Vector_mask>(m)[0]) {}
 
-        AVEL_FINL explicit Vector_mask(primitive p):
-            content(p) {}
-
         AVEL_FINL explicit Vector_mask(bool b):
-            content(-b) {}
+            content(b) {}
 
         AVEL_FINL explicit Vector_mask(const arr1xb& arr) {
             static_assert(
@@ -70,7 +67,7 @@ namespace avel {
                 "Implementation assumes bool occupy a single byte"
             );
 
-            content = -arr[0];
+            content = arr[0];
         }
 
         Vector_mask() = default;
@@ -84,11 +81,6 @@ namespace avel {
 
         AVEL_FINL Vector_mask& operator=(bool b) {
             *this = Vector_mask{b};
-            return *this;
-        }
-
-        AVEL_FINL Vector_mask& operator=(primitive p) {
-            *this = Vector_mask{p};
             return *this;
         }
 
@@ -137,33 +129,7 @@ namespace avel {
             return Vector_mask{static_cast<primitive>(content ^ 0x1)};
         }
 
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator&(Vector_mask lhs, Vector_mask rhs) {
-            lhs &= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator&&(Vector_mask lhs, Vector_mask rhs) {
-            return lhs & rhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator|(Vector_mask lhs, Vector_mask rhs) {
-            lhs |= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator||(Vector_mask lhs, Vector_mask rhs) {
-            return lhs | rhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator^(Vector_mask lhs, Vector_mask rhs) {
-            lhs ^= rhs;
-            return lhs;
-        }
+        AVEL_VECTOR_MASK_BINARY_BITWISE_OPERATORS
 
         //=================================================
         // Conversion operators
@@ -216,6 +182,24 @@ namespace avel {
         return none(mask1x32u{m});
     }
 
+    template<std::uint32_t N>
+    [[nodiscard]]
+    AVEL_FINL bool extract(mask1x32i m) {
+        static_assert(N <= 1, "Specified index does not exist");
+        typename std::enable_if<N <= 1, int>::type dummy_variable = 0;
+
+        return decay(m);
+    }
+
+    template<std::uint32_t N>
+    [[nodiscard]]
+    AVEL_FINL mask1x32i insert(mask1x32i m, bool b) {
+        static_assert(N <= 1, "Specified index does not exist");
+        typename std::enable_if<N <= 1, int>::type dummy_variable = 0;
+
+        return mask1x32i{b};
+    }
+
 
 
 
@@ -264,7 +248,7 @@ namespace avel {
             Vector(convert<Vector>(x)[0]) {}
 
         AVEL_FINL explicit Vector(mask m):
-            content(-decay(m)) {}
+            content(decay(m) ? 1 : 0) {}
 
         AVEL_FINL Vector(primitive content):
             content(content) {}
@@ -343,17 +327,17 @@ namespace avel {
         //=================================================
 
         AVEL_FINL Vector& operator+=(Vector rhs) {
-            content += decay(rhs);
+            content = std::uint32_t(content) + std::uint32_t(decay(rhs));
             return *this;
         }
 
         AVEL_FINL Vector& operator-=(Vector rhs) {
-            content -= decay(rhs);
+            content = std::uint32_t(content) - std::uint32_t(decay(rhs));
             return *this;
         }
 
         AVEL_FINL Vector& operator*=(Vector rhs) {
-            content *= decay(rhs);
+            content = std::uint32_t(content) * std::uint32_t(decay(rhs));
             return *this;
         }
 
@@ -373,61 +357,13 @@ namespace avel {
         // Arithmetic operators
         //=================================================
 
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator+(Vector lhs, Vector rhs) {
-            lhs += rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator-(Vector lhs, Vector rhs) {
-            lhs -= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-       AVEL_FINL friend Vector operator*(Vector lhs, Vector rhs) {
-            lhs *= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator/(Vector lhs, Vector rhs) {
-            lhs /= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator%(Vector lhs, Vector rhs) {
-            lhs %= rhs;
-            return lhs;
-        }
+        AVEL_VECTOR_ARITHMETIC_OPERATORS
 
         //=================================================
         // Increment/Decrement operators
         //=================================================
 
-        AVEL_FINL Vector& operator++() {
-            *this += Vector{1};
-            return *this;
-        }
-
-        AVEL_FINL Vector operator++(int) {
-            auto temp = *this;
-            *this += Vector{1};
-            return temp;
-        }
-
-        AVEL_FINL Vector& operator--() {
-            *this -= Vector{1};
-            return *this;
-        }
-
-        AVEL_FINL Vector operator--(int) {
-            auto temp = *this;
-            *this -= Vector{1};
-            return temp;
-        }
+        AVEL_VECTOR_INCREMENT_DECREMENT_OPERATORS
 
         //=================================================
         // Bitwise assignment operators
@@ -449,7 +385,7 @@ namespace avel {
         }
 
         AVEL_FINL Vector& operator<<=(long long rhs) {
-            content = (rhs >= 32) ? 0x00 : (content << rhs);
+            content = (rhs >= 32) ? 0x00 : (std::uint32_t(content) << rhs);
             return *this;
         }
 
@@ -459,7 +395,7 @@ namespace avel {
         }
 
         AVEL_FINL Vector& operator<<=(Vector rhs) {
-            content = (decay(rhs) >= 32) ? 0x00 : (content << decay(rhs));
+            content = (decay(rhs) >= 32) ? 0x00 : (std::uint32_t(content) << decay(rhs));
             return *this;
         }
 
@@ -477,47 +413,7 @@ namespace avel {
             return Vector{static_cast<primitive>(~content)};
         }
 
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator&(Vector lhs, Vector rhs) {
-            lhs &= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator|(Vector lhs, Vector rhs) {
-            lhs |= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator^(Vector lhs, Vector rhs) {
-            lhs ^= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator<<(Vector lhs, long long rhs) {
-            lhs <<= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator>>(Vector lhs, long long rhs) {
-            lhs >>= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator<<(Vector lhs, Vector rhs) {
-            lhs <<= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator>>(Vector lhs, Vector rhs) {
-            lhs >>= rhs;
-            return lhs;
-        }
+        AVEL_VECTOR_BINARY_BITWISE_OPERATORS
 
         //=================================================
         // Conversion operators
@@ -569,8 +465,38 @@ namespace avel {
     //=====================================================
 
     [[nodiscard]]
-    AVEL_FINL vec1x32i broadcast_mask(mask1x32i m) {
+    AVEL_FINL std::uint32_t count(vec1x32i v) {
+        return count(vec1x32u{v});
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint32_t any(vec1x32i v) {
+        return any(vec1x32u{v});
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint32_t all(vec1x32i v) {
+        return all(vec1x32u{v});
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint32_t none(vec1x32i v) {
+        return none(vec1x32u{v});
+    }
+
+    [[nodiscard]]
+    AVEL_FINL vec1x32i set_bits(mask1x32i m) {
         return vec1x32i{static_cast<vec1x32i::scalar>(-decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL vec1x32i keep(mask1x32i m, vec1x32i v) {
+        return vec1x32i{keep(mask1x32u{m}, vec1x32u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL vec1x32i clear(mask1x32i m, vec1x32i v) {
+        return vec1x32i{clear(mask1x32u{m}, vec1x32u{v})};
     }
 
     [[nodiscard]]
@@ -614,7 +540,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec1x32i negate(vec1x32i m, vec1x32i v) {
+    AVEL_FINL vec1x32i negate(mask1x32i m, vec1x32i v) {
         if (decay(m)) {
             return -v;
         } else {
@@ -683,22 +609,9 @@ namespace avel {
 
 
 
-    template<std::uint32_t N = vec1x32i::width>
-    AVEL_FINL vec1x32i gather(std::int32_t* ptr, vec1x32i indices) {
-        return vec1x32i{ptr[decay(indices)]};
-    }
-
     template<>
-    AVEL_FINL vec1x32i gather<0>(std::int32_t* ptr, vec1x32i indices) {
-        return vec1x32i{0x00};
-    }
-
-    template<>
-    AVEL_FINL vec1x32i gather<vec1x32i::width>(std::int32_t* ptr, vec1x32i indices) {
-        return vec1x32i{ptr[decay(indices)]};
-    }
-
-    AVEL_FINL vec1x32i gather(std::int32_t* ptr, vec1x32i indices, std::uint32_t n) {
+    [[nodiscard]]
+    AVEL_FINL vec1x32i gather<vec1x32i>(const std::int32_t* ptr, vec1x32i indices, std::uint32_t n) {
         if (n) {
             return vec1x32i{ptr[decay(indices)]};
         } else {
@@ -706,24 +619,17 @@ namespace avel {
         }
     }
 
-
-
-    template<std::uint32_t N = vec1x32u::width>
-    AVEL_FINL vec1x32u gather(std::uint32_t* ptr, vec1x32i indices) {
-        return vec1x32u{ptr[decay(indices)]};
+    template<>
+    [[nodiscard]]
+    AVEL_FINL vec1x32i gather<vec1x32i>(const std::int32_t* ptr, vec1x32i indices) {
+        return vec1x32i{ptr[decay(indices)]};
     }
+
+
 
     template<>
-    AVEL_FINL vec1x32u gather<0>(std::uint32_t* ptr, vec1x32i indices) {
-        return vec1x32u{0x00};
-    }
-
-    template<>
-    AVEL_FINL vec1x32u gather<vec1x32u::width>(std::uint32_t* ptr, vec1x32i indices) {
-        return vec1x32u{ptr[decay(indices)]};
-    }
-
-    AVEL_FINL vec1x32u gather(std::uint32_t* ptr, vec1x32i indices, std::uint32_t n) {
+    [[nodiscard]]
+    AVEL_FINL vec1x32u gather<vec1x32u>(const std::uint32_t* ptr, vec1x32i indices, std::uint32_t n) {
         if (n) {
             return vec1x32u{ptr[decay(indices)]};
         } else {
@@ -731,12 +637,20 @@ namespace avel {
         }
     }
 
+    template<>
+    [[nodiscard]]
+    AVEL_FINL vec1x32u gather<vec1x32u>(const std::uint32_t* ptr, vec1x32i indices) {
+        return vec1x32u{ptr[decay(indices)]};
+    }
+
 
 
 
     template<std::uint32_t N = vec1x32i::width>
     AVEL_FINL void store(std::int32_t* ptr, vec1x32i v) {
-        *ptr = decay(v);
+        if (N) {
+            *ptr = decay(v);
+        }
     }
 
     template<>
@@ -754,7 +668,9 @@ namespace avel {
 
     template<std::uint32_t N = vec1x32i::width>
     AVEL_FINL void aligned_store(std::int32_t* ptr, vec1x32i v) {
-        *ptr = decay(v);
+        if (N) {
+            *ptr = decay(v);
+        }
     }
 
     template<>
@@ -769,6 +685,12 @@ namespace avel {
     }
 
 
+
+    AVEL_FINL void scatter(std::int32_t* ptr, vec1x32i v, vec1x32i indices, std::uint32_t n) {
+        if (n) {
+            ptr[decay(indices)] = decay(v);
+        }
+    }
 
     template<std::uint32_t N = vec1x32i::width>
     AVEL_FINL void scatter(std::int32_t* ptr, vec1x32i v, vec1x32i indices) {
@@ -785,13 +707,13 @@ namespace avel {
         ptr[decay(indices)] = decay(v);
     }
 
-    AVEL_FINL void scatter(std::int32_t* ptr, vec1x32i v, vec1x32i indices, std::uint32_t n) {
+
+
+    AVEL_FINL void scatter(std::uint32_t* ptr, vec1x32u v, vec1x32i indices, std::uint32_t n) {
         if (n) {
             ptr[decay(indices)] = decay(v);
         }
     }
-
-
 
     template<std::uint32_t N = vec1x32i::width>
     AVEL_FINL void scatter(std::uint32_t* ptr, vec1x32u v, vec1x32i indices) {
@@ -806,12 +728,6 @@ namespace avel {
     template<>
     AVEL_FINL void scatter<vec1x32i::width>(std::uint32_t* ptr, vec1x32u v, vec1x32i indices) {
         ptr[decay(indices)] = decay(v);
-    }
-
-    AVEL_FINL void scatter(std::uint32_t* ptr, vec1x32u v, vec1x32i indices, std::uint32_t n) {
-        if (n) {
-            ptr[decay(indices)] = decay(v);
-        }
     }
 
 
@@ -862,7 +778,7 @@ namespace avel {
         static_assert(S <= 32, "Cannot shift by more than scalar width");
         typename std::enable_if<S <= 32, int>::type dummy_variable = 0;
 
-        return vec1x32i{bit_shift_right<S>(vec1x32u{v})};
+        return v >> S;
     }
 
 
@@ -913,35 +829,7 @@ namespace avel {
         return ret;
     }
 
-    [[nodiscard]]
-    AVEL_FINL vec1x32i popcount(vec1x32i v) {
-        return vec1x32i{popcount(vec1x32u{v})};
-    }
-
-    [[nodiscard]]
-    AVEL_FINL vec1x32i countl_zero(vec1x32i v) {
-        return vec1x32i{countl_zero(vec1x32u{v})};
-    }
-
-    [[nodiscard]]
-    AVEL_FINL vec1x32i countl_one(vec1x32i v) {
-        return vec1x32i{countl_one(vec1x32u{v})};
-    }
-
-    [[nodiscard]]
-    AVEL_FINL vec1x32i countr_zero(vec1x32i v) {
-        return vec1x32i{countr_zero(vec1x32u{v})};
-    }
-
-    [[nodiscard]]
-    AVEL_FINL vec1x32i countr_one(vec1x32i v) {
-        return vec1x32i{countr_one(vec1x32u{v})};
-    }
-
-    [[nodiscard]]
-    AVEL_FINL mask1x32i has_single_bit(vec1x32i v) {
-        return mask1x32i{has_single_bit(vec1x32u{v})};
-    }
+    AVEL_SIGNED_VECTOR_BIT_FUNCTIONS(vec1x32i, mask1x32i, vec1x32u)
 
 }
 

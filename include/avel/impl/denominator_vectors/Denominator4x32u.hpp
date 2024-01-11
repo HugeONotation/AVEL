@@ -6,7 +6,7 @@ namespace avel {
     using Denom4x32u = Denominator<vec4x32u>;
 
     template<>
-    class alignas(64) Denominator<vec4x32u> {
+    class Denominator<vec4x32u> {
     public:
 
         template<class U>
@@ -24,7 +24,6 @@ namespace avel {
 
         explicit Denominator(Denom32u denom):
             m(denom.m),
-            sh1(denom.sh1),
             sh2(denom.sh2),
             d(denom.d) {}
 
@@ -104,7 +103,7 @@ namespace avel {
             vec4x32u lo{_mm_srli_si128(_mm_mul_epu32(decay(x), decay(y)), 4)};
             vec4x32u hi{_mm_mul_epu32(_mm_srli_si128(decay(x), 4), _mm_srli_si128(decay(y), 4))};
 
-            mask4x32u m{{false, true, false, true}};
+            mask4x32u m{arr4xb{false, true, false, true}};
             return blend(m, hi, lo);
             #endif
 

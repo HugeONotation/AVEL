@@ -15,10 +15,11 @@ namespace avel {
     // Forward declarations
     //=====================================================
 
-    div_type<vec64x8u> div(vec64x8u numerator, vec64x8u denominator);
-    vec64x8u broadcast_mask(mask64x8u m);
+    div_type<vec64x8u> div(vec64x8u x, vec64x8u y);
+    vec64x8u set_bits(mask64x8u m);
     vec64x8u blend(vec64x8u a, vec64x8u b, mask64x8u m);
     vec64x8u countl_one(vec64x8u v);
+    vec64x8u bit_width(vec64x8u v);
 
 
 
@@ -156,33 +157,7 @@ namespace avel {
             #endif
         }
 
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator&(Vector_mask lhs, Vector_mask rhs) {
-            lhs &= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator&&(Vector_mask lhs, Vector_mask rhs) {
-            return lhs & rhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator|(Vector_mask lhs, Vector_mask rhs) {
-            lhs |= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator||(Vector_mask lhs, Vector_mask rhs) {
-            return lhs | rhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector_mask operator^(Vector_mask lhs, Vector_mask rhs) {
-            lhs ^= rhs;
-            return lhs;
-        }
+        AVEL_VECTOR_MASK_BINARY_BITWISE_OPERATORS
 
         //=================================================
         // Conversion operators
@@ -223,6 +198,25 @@ namespace avel {
         #if defined(AVEL_AVX512BW)
         return _kortestz_mask64_u8(decay(m), decay(m));
         #endif
+    }
+
+    template<std::uint32_t N>
+    [[nodiscard]]
+    AVEL_FINL bool extract(mask64x8u m) {
+        static_assert(N < mask64x8u::width, "Specified index does not exist");
+        typename std::enable_if<N < mask64x8u::width, int>::type dummy_variable = 0;
+
+        return decay(m) & (std::uint64_t(1) << N);
+    }
+
+    template<std::uint32_t N>
+    [[nodiscard]]
+    AVEL_FINL mask64x8u insert(mask64x8u m, bool b) {
+        static_assert(N < mask64x8u::width, "Specified index does not exist");
+        typename std::enable_if<N < mask64x8u::width, int>::type dummy_variable = 0;
+
+        auto mask = std::uint64_t(b) << N;
+        return mask64x8u{__mmask64(decay(m) & ~mask) | mask};
     }
 
 
@@ -388,25 +382,20 @@ namespace avel {
             #endif
             return *this;
         }
-
         AVEL_FINL Vector& operator*=(Vector rhs) {
             #if defined(AVEL_AVX512BW)
-            auto even_mask = _mm512_set1_epi16(0x00FF);
+            constexpr std::uint64_t odd_mask = 0xaaaaaaaaaaaaaaaaull;
 
-            auto even_product = _mm512_and_si512(even_mask, _mm512_mullo_epi16(content, decay(rhs)));
-            auto odd_product  = _mm512_slli_epi16(
-                _mm512_mullo_epi16(
-                    _mm512_srli_epi16(content, 0x8),
-                    _mm512_srli_epi16(decay(rhs), 0x8)
-                ),
-                0x8
+            auto even_products = _mm512_mullo_epi16(content, decay(rhs));
+            auto odd_products = _mm512_mullo_epi16(
+                _mm512_srli_epi16(content, 8),
+                _mm512_maskz_mov_epi8(odd_mask, decay(rhs))
             );
 
-            auto product = _mm512_or_si512(even_product, odd_product);
-            content = product;
-            //TODO: Explicitly use vpternlogd
-            #endif
+            auto products = _mm512_mask_blend_epi8(odd_mask, even_products, odd_products);
+            content = products;
 
+            #endif
             return *this;
         }
 
@@ -426,61 +415,13 @@ namespace avel {
         // Arithmetic operators
         //=================================================
 
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator+(Vector lhs, Vector rhs) {
-            lhs += rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator-(Vector lhs, Vector rhs) {
-            lhs -= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator*(Vector lhs, Vector rhs) {
-            lhs *= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator/(Vector lhs, Vector rhs) {
-            lhs /= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator%(Vector lhs, Vector rhs) {
-            lhs %= rhs;
-            return lhs;
-        }
+        AVEL_VECTOR_ARITHMETIC_OPERATORS
 
         //=================================================
         // Increment/Decrement operators
         //=================================================
 
-        AVEL_FINL Vector& operator++() {
-            *this += Vector{1};
-            return *this;
-        }
-
-        AVEL_FINL Vector operator++(int) {
-            auto temp = *this;
-            *this += Vector{1};
-            return temp;
-        }
-
-        AVEL_FINL Vector& operator--() {
-            *this -= Vector{1};
-            return *this;
-        }
-
-        AVEL_FINL Vector operator--(int) {
-            auto temp = *this;
-            *this -= Vector{1};
-            return temp;
-        }
+        AVEL_VECTOR_INCREMENT_DECREMENT_OPERATORS
 
         //=================================================
         // Bitwise assignment operators
@@ -604,47 +545,7 @@ namespace avel {
             #endif
         }
 
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator&(Vector lhs, Vector rhs) {
-            lhs &= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator|(Vector lhs, Vector rhs) {
-            lhs |= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator^(Vector lhs, Vector rhs) {
-            lhs ^= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator<<(Vector lhs, long long rhs) {
-            lhs <<= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator>>(Vector lhs, long long rhs) {
-            lhs >>= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator<<(Vector lhs, Vector rhs) {
-            lhs <<= rhs;
-            return lhs;
-        }
-
-        [[nodiscard]]
-        AVEL_FINL friend Vector operator>>(Vector lhs, Vector rhs) {
-            lhs >>= rhs;
-            return lhs;
-        }
+        AVEL_VECTOR_BINARY_BITWISE_OPERATORS
 
         //=================================================
         // Conversion operators
@@ -931,10 +832,6 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec64x8u rotr(vec64x8u v, vec64x8u s) {
-        /* //TODO: Leverage this implementation if AVEL_AVX512VBMI2 is available
-        _mm512_shldi_epi16(_mm512_shrdv_epi16(a, _mm512_swaphl_epi8(a), _mm512_alignr_epi8(_rotate_vcnt_r(mm512, cnt), _rotate_vcnt_r(mm512, cnt), 1)), _mm512_shrdv_epi16(_mm512_swaphl_epi8(a), a, _rotate_vcnt_r(mm512, cnt)), 8);
-        */
-
         #if defined(AVEL_AVX512BW)
         s &= vec64x8u{0x7};
         auto lo = _mm512_unpacklo_epi8(decay(v), decay(v));
@@ -977,7 +874,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec64x8u broadcast_mask(mask64x8u m) {
+    AVEL_FINL vec64x8u set_bits(mask64x8u m) {
         #if defined(AVEL_AVX512BW)
         return vec64x8u{_mm512_movm_epi8(decay(m))};
         #endif
@@ -1049,7 +946,7 @@ namespace avel {
     AVEL_FINL vec64x8u midpoint(vec64x8u a, vec64x8u b) {
         #if defined(AVEL_AVX512BW)
         auto t1 = _mm512_avg_epu8(decay(a), decay(b));
-        auto t5 = _mm512_and_si512(_mm512_ternarylogic_epi32(decay(a), decay(b), decay(broadcast_mask(b < a)), 0x14), _mm512_set1_epi8(0x1));
+        auto t5 = _mm512_and_si512(_mm512_ternarylogic_epi32(decay(a), decay(b), decay(set_bits(b < a)), 0x14), _mm512_set1_epi8(0x1));
         auto t6 = _mm512_sub_epi8(t1, t5);
         return vec64x8u{t6};
         #endif
@@ -1151,7 +1048,299 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL div_type<vec64x8u> div(vec64x8u x, vec64x8u y) {
-        #if defined(AVEL_AVX512BW)
+        #if defined(AVEL_AVX512BW) && defined(AVEL_AVX512VBMI)
+        // This approach fundamentally takes the same approach as Denom64x8u.
+        // Using a lookup table is fast enough to beat the long-division
+        // approach under the assumption that the table is already cached
+
+        //Special thanks to u/YumiYumiYumi
+        alignas(64) static constexpr std::uint8_t recip_hi_table_data[128] {
+            0x00, 0x80, 0x55, 0x40, 0x33, 0x2a, 0x24, 0x20,
+            0x1c, 0x19, 0x17, 0x15, 0x13, 0x12, 0x11, 0x10,
+            0x0f, 0x0e, 0x0d, 0x0c, 0x0c, 0x0b, 0x0b, 0x0a,
+            0x0a, 0x09, 0x09, 0x09, 0x08, 0x08, 0x08, 0x08,
+            0x07, 0x07, 0x07, 0x07, 0x06, 0x06, 0x06, 0x06,
+            0x06, 0x06, 0x05, 0x05, 0x05, 0x05, 0x05, 0x05,
+            0x05, 0x05, 0x05, 0x04, 0x04, 0x04, 0x04, 0x04,
+            0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
+            0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+            0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+            0x03, 0x03, 0x03, 0x03, 0x03, 0x02, 0x02, 0x02,
+            0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+            0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+            0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+            0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+            0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02
+        };
+
+        alignas(64) static constexpr std::uint8_t recip_lo_table_data[256] {
+            0x00, 0x00, 0x56, 0x00, 0x34, 0xab, 0x93, 0x00,
+            0x72, 0x9a, 0x46, 0x56, 0xb2, 0x4a, 0x12, 0x00,
+            0x10, 0x39, 0x7a, 0xcd, 0x31, 0xa3, 0x22, 0xab,
+            0x3e, 0xd9, 0x7c, 0x25, 0xd4, 0x89, 0x43, 0x00,
+            0xc2, 0x88, 0x51, 0x1d, 0xec, 0xbd, 0x91, 0x67,
+            0x3f, 0x19, 0xf5, 0xd2, 0xb1, 0x91, 0x73, 0x56,
+            0x3a, 0x1f, 0x06, 0xed, 0xd5, 0xbe, 0xa8, 0x93,
+            0x7e, 0x6a, 0x57, 0x45, 0x33, 0x22, 0x11, 0x00,
+            0xf1, 0xe1, 0xd3, 0xc4, 0xb6, 0xa9, 0x9c, 0x8f,
+            0x82, 0x76, 0x6a, 0x5f, 0x54, 0x49, 0x3e, 0x34,
+            0x2a, 0x20, 0x16, 0x0d, 0x04, 0xfb, 0xf2, 0xe9,
+            0xe1, 0xd9, 0xd1, 0xc9, 0xc1, 0xba, 0xb2, 0xab,
+            0xa4, 0x9d, 0x96, 0x90, 0x89, 0x83, 0x7d, 0x77,
+            0x71, 0x6b, 0x65, 0x5f, 0x5a, 0x54, 0x4f, 0x4a,
+            0x44, 0x3f, 0x3a, 0x35, 0x31, 0x2c, 0x27, 0x23,
+            0x1e, 0x1a, 0x15, 0x11, 0x0d, 0x09, 0x05, 0x00,
+            0xfd, 0xf9, 0xf5, 0xf1, 0xed, 0xea, 0xe6, 0xe2,
+            0xdf, 0xdb, 0xd8, 0xd5, 0xd1, 0xce, 0xcb, 0xc8,
+            0xc4, 0xc1, 0xbe, 0xbb, 0xb8, 0xb5, 0xb3, 0xb0,
+            0xad, 0xaa, 0xa7, 0xa5, 0xa2, 0x9f, 0x9d, 0x9a,
+            0x98, 0x95, 0x93, 0x90, 0x8e, 0x8b, 0x89, 0x87,
+            0x84, 0x82, 0x80, 0x7e, 0x7b, 0x79, 0x77, 0x75,
+            0x73, 0x71, 0x6f, 0x6d, 0x6b, 0x69, 0x67, 0x65,
+            0x63, 0x61, 0x5f, 0x5d, 0x5b, 0x59, 0x58, 0x56,
+            0x54, 0x52, 0x51, 0x4f, 0x4d, 0x4b, 0x4a, 0x48,
+            0x47, 0x45, 0x43, 0x42, 0x40, 0x3f, 0x3d, 0x3c,
+            0x3a, 0x39, 0x37, 0x36, 0x34, 0x33, 0x31, 0x30,
+            0x2f, 0x2d, 0x2c, 0x2a, 0x29, 0x28, 0x26, 0x25,
+            0x24, 0x22, 0x21, 0x20, 0x1f, 0x1d, 0x1c, 0x1b,
+            0x1a, 0x19, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12,
+            0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09,
+            0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x00
+        };
+
+        __m512i recip_hi0 = _mm512_load_si512(recip_hi_table_data +   0);
+        __m512i recip_hi1 = _mm512_load_si512(recip_hi_table_data +  64);
+
+        __m512i recip_lo0 = _mm512_load_si512(recip_lo_table_data +   0);
+        __m512i recip_lo1 = _mm512_load_si512(recip_lo_table_data +  64);
+        __m512i recip_lo2 = _mm512_load_si512(recip_lo_table_data + 128);
+        __m512i recip_lo3 = _mm512_load_si512(recip_lo_table_data + 192);
+
+        __m512i byte_mask = _mm512_set1_epi16(0x00FF);
+        __m512i one = _mm512_set1_epi8(1);
+
+        // Don't care about y == 0
+        __m512i z = _mm512_sub_epi8(decay(y), one);
+        __mmask64 high_bit_mask = _mm512_movepi8_mask(z);
+
+        // Lookup low/high reciprocal halves
+        __m512i recip_hi = _mm512_mask_blend_epi8(
+            high_bit_mask,
+            _mm512_permutex2var_epi8(recip_hi0, z, recip_hi1),
+            one
+        );
+
+        __m512i recip_lo = _mm512_mask_blend_epi8(
+            high_bit_mask,
+            _mm512_permutex2var_epi8(recip_lo0, z, recip_lo1),
+            _mm512_permutex2var_epi8(recip_lo2, z, recip_lo3)
+        );
+
+        // Construct 16-bit reciprocal
+        __m512i zeros = _mm512_setzero_si512();
+        __m512i reciprocals_lo = _mm512_unpacklo_epi8(recip_lo, recip_hi);
+        __m512i reciprocals_hi = _mm512_unpackhi_epi8(recip_lo, recip_hi);
+
+        __m512i x_lo = _mm512_unpacklo_epi8(decay(x), zeros);
+        __m512i x_hi = _mm512_unpackhi_epi8(decay(x), zeros);
+
+        // Compute quotient
+        __m512i quotient_lo = _mm512_mulhi_epu16(x_lo, reciprocals_lo);
+        __m512i quotient_hi = _mm512_mulhi_epu16(x_hi, reciprocals_hi);
+
+        __m512i quotient = _mm512_packus_epi16(quotient_lo, quotient_hi);
+
+        // Handle division by 1
+        __mmask64 is_denom_one = _mm512_testn_epi8_mask(z, z);
+        quotient = _mm512_mask_blend_epi8(is_denom_one, quotient, decay(x));
+
+        // Construct remainder
+        __m512i y_lo = _mm512_unpacklo_epi8(decay(y), zeros);
+        __m512i y_hi = _mm512_unpackhi_epi8(decay(y), zeros);
+
+        __m512i tmp_lo = _mm512_mullo_epi16(quotient_lo, y_lo);
+        __m512i tmp_hi = _mm512_mullo_epi16(quotient_hi, y_hi);
+
+        __m512i r = _mm512_maskz_sub_epi8(_knot_mask64(is_denom_one), decay(x), _mm512_packus_epi16(tmp_lo, tmp_hi));
+
+        return {
+            vec64x8u{quotient},
+            vec64x8u{r}
+        };
+
+        /*
+        alignas(128) static constexpr std::uint8_t bit_width_table_data[128] {
+            0, 1, 2, 2, 3, 3, 3, 3,
+            4, 4, 4, 4, 4, 4, 4, 4,
+            5, 5, 5, 5, 5, 5, 5, 5,
+            5, 5, 5, 5, 5, 5, 5, 5,
+            6, 6, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7
+        };
+
+        __m512i bit_width_table0 = _mm512_load_si512(bit_width_table_data +  0);
+        __m512i bit_width_table1 = _mm512_load_si512(bit_width_table_data + 64);
+
+        alignas(256) constexpr static std::uint8_t m_table_data[256] {
+                0,   1,   1,  86,   1, 154,  86,  37,   1, 200, 154, 117,  86,  60,  37,  18,
+                1, 226, 200, 176, 154, 135, 117, 101,  86,  72,  60,  48,  37,  27,  18,   9,
+                1, 241, 226, 213, 200, 187, 176, 165, 154, 144, 135, 126, 117, 109, 101,  93,
+                86,  79,  72,  66,  60,  54,  48,  42,  37,  32,  27,  22,  18,  13,   9,   5,
+                1, 249, 241, 234, 226, 219, 213, 206, 200, 193, 187, 181, 176, 170, 165, 159,
+            154, 149, 144, 139, 135, 130, 126, 121, 117, 113, 109, 105, 101,  97,  93,  89,
+                86,  82,  79,  75,  72,  69,  66,  63,  60,  57,  54,  51,  48,  45,  42,  40,
+                37,  34,  32,  29,  27,  25,  22,  20,  18,  15,  13,  11,   9,   7,   5,   3,
+                1, 253, 249, 245, 241, 237, 234, 230, 226, 223, 219, 216, 213, 209, 206, 203,
+            200, 196, 193, 190, 187, 184, 181, 179, 176, 173, 170, 167, 165, 162, 159, 157,
+            154, 152, 149, 147, 144, 142, 139, 137, 135, 132, 130, 128, 126, 123, 121, 119,
+            117, 115, 113, 111, 109, 107, 105, 103, 101,  99,  97,  95,  93,  91,  89,  88,
+                86,  84,  82,  81,  79,  77,  75,  74,  72,  71,  69,  67,  66,  64,  63,  61,
+                60,  58,  57,  55,  54,  52,  51,  49,  48,  47,  45,  44,  42,  41,  40,  38,
+                37,  36,  34,  33,  32,  31,  29,  28,  27,  26,  25,  23,  22,  21,  20,  19,
+                18,  16,  15,  14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2
+        };
+
+        __m512i m_table0 = _mm512_load_si512(m_table_data +   0);
+        __m512i m_table1 = _mm512_load_si512(m_table_data +  64);
+        __m512i m_table2 = _mm512_load_si512(m_table_data + 128);
+        __m512i m_table3 = _mm512_load_si512(m_table_data + 192);
+
+        // Compute l via lookup
+
+        __m512i v = _mm512_sub_epi8(decay(y), _mm512_set1_epi8(1));
+
+        __m512i partial_result = _mm512_permutex2var_epi8(bit_width_table0, v, bit_width_table1);
+
+        __mmask64 high_bit_mask = _mm512_movepi8_mask(v);
+
+        __m512i l = _mm512_mask_blend_epi8(high_bit_mask, partial_result, _mm512_set1_epi8(8));
+
+        // Compute m via lookup
+
+        __m512i result0 = _mm512_permutex2var_epi8(m_table0, decay(y), m_table1);
+        __m512i result1 = _mm512_permutex2var_epi8(m_table2, decay(y), m_table3);
+
+        __mmask64 table_mask = _mm512_movepi8_mask(decay(y));
+        __m512i m = _mm512_mask_blend_epi8(table_mask, result0, result1);
+
+        __mmask64 sh1 = _mm512_test_epi8_mask(l, l);
+        __m512i sh2 = _mm512_sub_epi8(l, _mm512_maskz_set1_epi8(sh1, 0x1));
+
+        //Mulhi implementation
+        __m512i even_mask = _mm512_set1_epi16(0x00FF);
+
+        __m512i x_even = _mm512_and_si512(even_mask, decay(x));
+        __m512i x_odd  = _mm512_srli_epi16(x, 8);
+
+        __m512i y_even = _mm512_and_si512(even_mask, m);
+        __m512i y_odd  = _mm512_srli_epi16(m, 8);
+
+        __m512i p_even = _mm512_mullo_epi16(x_even, y_even);
+        __m512i p_odd  = _mm512_mullo_epi16(x_odd,  y_odd );
+
+        __m512i mulhi_even = _mm512_srli_epi16(p_even, 8);
+        __m512i mulhi_odd  = _mm512_andnot_si512(even_mask, p_odd);
+
+        __m512i mulhi = _mm512_or_si512(mulhi_even, mulhi_odd);
+
+        // Construct quotient
+        __m512i t0 = _mm512_sub_epi8(decay(x), mulhi);
+
+        __m512i t0_shifted = _mm512_and_si512( _mm512_srli_epi16(t0, 1), _mm512_set1_epi8(0x7F));
+        __m512i t2 = _mm512_mask_blend_epi8(sh1, t0, t0_shifted);
+
+        __m512i t3 = _mm512_add_epi8(mulhi, t2);
+
+        __m512i even_result = _mm512_srlv_epi16(
+            _mm512_and_si512(even_mask, t3),
+            _mm512_and_si512(even_mask, sh2)
+        );
+
+        __m512i odd_result = _mm512_andnot_si512(even_mask, _mm512_srlv_epi16(t3, _mm512_srli_epi16(sh2, 0x8)));
+
+        __m512i quotient = _mm512_or_si512(even_result, odd_result);
+
+        // Construct remainder
+        vec64x8u r = x - (vec64x8u{quotient} * y);
+        return {vec64x8u{quotient}, r};
+        */
+
+        /*
+        auto l = bit_width(y - vec64x8u{1});
+
+        // Compute m via lookup
+        alignas(256) constexpr static std::uint8_t table_data[256] {
+              0,   1,   1,  86,   1, 154,  86,  37,   1, 200, 154, 117,  86,  60,  37,  18,
+              1, 226, 200, 176, 154, 135, 117, 101,  86,  72,  60,  48,  37,  27,  18,   9,
+              1, 241, 226, 213, 200, 187, 176, 165, 154, 144, 135, 126, 117, 109, 101,  93,
+             86,  79,  72,  66,  60,  54,  48,  42,  37,  32,  27,  22,  18,  13,   9,   5,
+              1, 249, 241, 234, 226, 219, 213, 206, 200, 193, 187, 181, 176, 170, 165, 159,
+            154, 149, 144, 139, 135, 130, 126, 121, 117, 113, 109, 105, 101,  97,  93,  89,
+             86,  82,  79,  75,  72,  69,  66,  63,  60,  57,  54,  51,  48,  45,  42,  40,
+             37,  34,  32,  29,  27,  25,  22,  20,  18,  15,  13,  11,   9,   7,   5,   3,
+              1, 253, 249, 245, 241, 237, 234, 230, 226, 223, 219, 216, 213, 209, 206, 203,
+            200, 196, 193, 190, 187, 184, 181, 179, 176, 173, 170, 167, 165, 162, 159, 157,
+            154, 152, 149, 147, 144, 142, 139, 137, 135, 132, 130, 128, 126, 123, 121, 119,
+            117, 115, 113, 111, 109, 107, 105, 103, 101,  99,  97,  95,  93,  91,  89,  88,
+             86,  84,  82,  81,  79,  77,  75,  74,  72,  71,  69,  67,  66,  64,  63,  61,
+             60,  58,  57,  55,  54,  52,  51,  49,  48,  47,  45,  44,  42,  41,  40,  38,
+             37,  36,  34,  33,  32,  31,  29,  28,  27,  26,  25,  23,  22,  21,  20,  19,
+             18,  16,  15,  14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2
+        };
+
+        auto table0 = _mm512_load_si512(table_data +   0);
+        auto table1 = _mm512_load_si512(table_data +  64);
+        auto table2 = _mm512_load_si512(table_data + 128);
+        auto table3 = _mm512_load_si512(table_data + 192);
+
+        auto result0 = _mm512_permutex2var_epi8(table0, decay(y), table1);
+        auto result1 = _mm512_permutex2var_epi8(table2, decay(y), table3);
+
+        auto table_mask = _mm512_movepi8_mask(decay(y));
+        auto m = _mm512_mask_blend_epi8(table_mask, result0, result1);
+
+        mask64x8u sh1{l};
+        auto sh2 = l - vec64x8u{sh1};
+
+        //Mulhi implementation
+        auto byte_mask = _mm512_set1_epi16(0x00FF);
+
+        auto x_even = _mm512_and_si512(byte_mask, decay(x));
+        auto x_odd  = _mm512_srli_epi16(decay(x), 8);
+
+        auto y_even = _mm512_and_si512(byte_mask, m);
+        auto y_odd  = _mm512_srli_epi16(m, 8);
+
+        auto p_even = _mm512_mullo_epi16(x_even, y_even);
+        auto p_odd  = _mm512_mullo_epi16(x_odd,  y_odd );
+
+        auto ret_even = _mm512_srli_epi16(p_even, 8);
+        auto ret_odd  = _mm512_andnot_si512(byte_mask, p_odd);
+
+        auto mulhi = _mm512_or_si512(ret_even, ret_odd);
+
+        // Construct quotient
+        vec64x8u t1{mulhi};
+        vec64x8u t0 = (x - t1);
+        vec64x8u t2 = blend(sh1, bit_shift_right<1>(t0), t0);
+        vec64x8u quotient = (t1 + t2) >> sh2;
+
+        // Construct remainder
+        vec64x8u r = x - (vec64x8u{quotient} * y);
+        return {vec64x8u{quotient}, r};
+        */
+
+        #elif defined(AVEL_AVX512BW)
         vec64x8u quotient{0x00};
 
         auto ones = _mm512_set1_epi8(0x01);
@@ -1248,6 +1437,9 @@ namespace avel {
         #if defined(AVEL_AVX512BW) && defined(AVEL_AVX512BITALG)
         return vec64x8u{_mm512_popcnt_epi8(decay(v))};
 
+        //TODO: Consider using vpermi2b
+        //TODO: Consider using wider popcnt ops if bitalg is not available
+
         #elif defined(AVEL_AVX512BW)
         alignas(64) static constexpr std::uint8_t table_data[16] {
             0, 1, 1, 2,
@@ -1272,7 +1464,31 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec64x8u countl_zero(vec64x8u v) {
-        #if defined(AVEL_AVX512BW)
+        //TODO: Consider leveraging conversion to 32-bit lzcnt
+        //TODO: Consider leveraging conversion to fp16
+        #if defined(AVEL_AVX512VW) && defined(AVEL_AVX512VBMI)
+        alignas(128) static constexpr std::uint8_t table[128] {
+            8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
+            3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+        };
+
+        auto table0 = _mm512_load_si512(table +  0);
+        auto table1 = _mm512_load_si512(table + 64);
+
+        auto partial_result = _mm512_permutex2var_epi8(table0, decay(v), table1);
+
+        auto is_high_bit_set_mask = _knot_mask64(_mm512_movepi8_mask(decay(v)));
+        auto ret = _mm512_maskz_mov_epi8(is_high_bit_set_mask, partial_result);
+
+        return vec64x8u{ret};
+
+        #elif defined(AVEL_AVX512BW)
         //Combined high and low nibble lookup table data
         alignas(32) static constexpr std::uint8_t table_data[32] {
             8, 3, 2, 2,
@@ -1306,6 +1522,9 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec64x8u countl_one(vec64x8u v) {
+        //TODO: Consider leveraging conversion to 32-bit lzcnt
+        //TODO: Consider leveraging conversion to fp16
+
         #if defined(AVEL_AVX512BW)
         alignas(16) static constexpr std::uint8_t table_data0[16] {
             0, 0, 0, 0,
@@ -1339,9 +1558,10 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL vec64x8u countr_zero(vec64x8u v) {
         #if defined(AVEL_AVX512BW) && defined(AVEL_AVX512BITALG)
-        auto neg_one = _mm512_set1_epi8(-1);
-        auto tz_mask = _mm512_andnot_si512(decay(v), _mm512_add_epi8(decay(v), neg_one));
+        auto tz_mask = _mm512_andnot_si512(decay(v), _mm512_add_epi8(decay(v), _mm512_set1_epi8(-1)));
         return vec64x8u{_mm512_popcnt_epi8(tz_mask)};
+
+        //TODO: Consider leveraging conversion to fp16
 
         #elif defined(AVEL_AVX512BW)
         alignas(16) static constexpr std::uint8_t table_data0[16] {
@@ -1375,6 +1595,8 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec64x8u countr_one(vec64x8u v) {
+        //TODO: Consider leveraging tzcnt
+        //TODO: Consider leveraging conversion to fp16
         #if defined(AVEL_AVX512BW)
         alignas(16) static constexpr std::uint8_t table_data0[16] {
             0, 1, 0, 2,
@@ -1407,7 +1629,26 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec64x8u bit_width(vec64x8u v) {
-        #if defined(AVEL_AVX512BW)
+        //TODO: Consider leveraging 32-bit tzcnt
+        //TODO: Consider leveraging conversion to fp16
+
+        #if defined(AVEL_AVX512BW) && defined(AVEL_AVX512VBMI)
+        auto table0 = _mm512_load_si512(bit_width_table_data + 0x00);
+        auto table1 = _mm512_load_si512(bit_width_table_data + 0x40);
+
+        auto partial_result = _mm512_permutex2var_epi8(table0, decay(v), table1);
+
+        auto is_high_bit_set_mask = _mm512_movepi8_mask(decay(v));
+
+        auto ret = _mm512_mask_blend_epi8(
+            is_high_bit_set_mask,
+            partial_result,
+            _mm512_set1_epi8(8)
+        );
+
+        return vec64x8u{ret};
+
+        #elif defined(AVEL_AVX512BW)
         alignas(16) static constexpr std::uint8_t table_data0[16] {
             0, 1, 2, 2,
             3, 3, 3, 3,
@@ -1439,7 +1680,20 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec64x8u bit_floor(vec64x8u v) {
-        #if defined(AVEL_AVX512BW)
+        //TODO: Consider leveraging tzcnt
+        //TODO: Consider leveraging conversion to fp16
+
+        #if defined(AVEL_AVX512BW) && defined(AVEL_AVX512VBMI)
+        auto table_half0 = _mm512_load_si512(bit_floor_table_data + 0x00);
+        auto table_half1 = _mm512_load_si512(bit_floor_table_data + 0x40);
+
+        auto table_results = _mm512_permutex2var_epi8(table_half0, decay(v), table_half1);
+
+        auto is_high_bit_set_mask = _mm512_movepi8_mask(decay(v));
+        auto result = _mm512_mask_blend_epi8(is_high_bit_set_mask, table_results, _mm512_set1_epi8(0x80));
+        return vec64x8u{result};
+
+        #elif defined(AVEL_AVX512BW)
         alignas(16) static constexpr std::uint8_t table_data0[16] {
             0, 1, 2, 2,
             4, 4, 4, 4,
@@ -1471,7 +1725,24 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec64x8u bit_ceil(vec64x8u v) {
-        #if defined(AVEL_AVX512BW)
+        //TODO: Consider leveraging tzcnt
+        //TODO: Consider leveraging conversion to fp16
+
+        #if defined(AVEL_AVX512BW) && defined(AVEL_AVX512VBMI)
+        auto ones = _mm512_set1_epi8(0x01);
+        auto v_clamped = _mm512_max_epu8(decay(v), ones);
+        auto table_indices = _mm512_sub_epi8(v_clamped, ones);
+
+        auto table_half0 = _mm512_load_si512(bit_ceil_table_data + 0x00);
+        auto table_half1 = _mm512_load_si512(bit_ceil_table_data + 0x40);
+
+        auto table_results = _mm512_permutex2var_epi8(table_half0, table_indices, table_half1);
+
+        auto is_result_non_zero_mask = _knot_mask64(_mm512_movepi8_mask(table_indices));
+        auto result = _mm512_maskz_mov_epi8(is_result_non_zero_mask, table_results);
+        return vec64x8u{result};
+
+        #elif defined(AVEL_AVX512BW)
         alignas(16) static constexpr std::uint8_t table_data0[16] {
              0,  1,  3,  3,
              7,  7,  7,  7,

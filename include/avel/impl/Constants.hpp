@@ -20,7 +20,7 @@ namespace avel {
     };
 
     //=====================================================
-    // Floating-point constants
+    // 32-bit Floating-point constants
     //
     // Used in implementation of math functions
     // Errors are positive for overestimates and negative
@@ -115,6 +115,141 @@ namespace avel {
 
     const std::uint32_t recip_pi_minus_bits = 0x3ea2f983;
     const float recip_pi_minus = avel::bit_cast<float>(recip_pi_minus_bits);
+
+    //=====================================================
+    // 64-bit floating-point constants
+    //
+    // Used in implementation of math functions
+    // Errors are positive for overestimates and negative
+    // for underestimates
+    //=====================================================
+
+    // Float-component masks
+
+    const std::uint64_t double_sign_bit_mask_bits = 0x8000000000000000ull;
+    const auto double_sign_bit_mask = avel::bit_cast<double>(double_sign_bit_mask_bits);
+
+    const std::uint64_t double_exponent_mask_bits = 0x7ff0000000000000ull;
+    const auto double_exponent_mask = avel::bit_cast<double>(double_exponent_mask_bits);
+
+    const std::uint64_t double_mantissa_mask_bits = 0x000fffffffffffffull;
+    const auto double_mantissa_mask = avel::bit_cast<double>(double_mantissa_mask_bits);
+
+    //=====================================================
+    // Mask Constants
+    //=====================================================
+
+    alignas(32) static constexpr std::array<std::int8_t, 32> masks_8_bit_lane{
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        -1, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0
+    };
+
+    ///
+    ///
+    ///
+    alignas(32) static constexpr std::array<std::int8_t, 32> masks128_table{
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0
+    };
+
+    ///
+    /// Table containing array that's used for loading masks.
+    ///
+    alignas(64) static constexpr std::array<std::int8_t, 64> masks256_table{
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0,
+        +0, +0, +0, +0
+    };
+
+    //=====================================================
+    // VBMI Lookup Tables for 8-bit integers
+    //=====================================================
+
+    alignas(128) static constexpr std::uint8_t countr_one_table_data[128] {
+
+    };
+
+    alignas(128) static constexpr std::uint8_t bit_width_table_data[128] {
+        0, 1, 2, 2, 3, 3, 3, 3,
+        4, 4, 4, 4, 4, 4, 4, 4,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        5, 5, 5, 5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7
+    };
+
+    alignas(128) constexpr std::uint8_t bit_floor_table_data[128] {
+        0x00, 0x01, 0x02, 0x02, 0x04, 0x04, 0x04, 0x04,
+        0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
+        0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
+        0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40
+    };
+
+    alignas(128) constexpr std::uint8_t bit_ceil_table_data[128] {
+        0x01, 0x02, 0x04, 0x04, 0x08, 0x08, 0x08, 0x08,
+        0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80
+    };
 
 }
 

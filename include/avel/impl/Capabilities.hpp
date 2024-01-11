@@ -12,7 +12,7 @@ static_assert(sizeof(float) == 4, "Size of floats should be 32 bits");
 static_assert(sizeof(double) == 8, "Size of doubles should be 64 bits");
 
 #if defined(__INTEL_LLVM_COMPILER)
-    #define AVEL_ICX
+    #define AVEL_ICPX
 
     #if defined(AVEL_FORCE_INLINE)
         #define AVEL_FINL __attribute__((__always_inline__)) inline
@@ -68,7 +68,7 @@ static_assert(sizeof(double) == 8, "Size of doubles should be 64 bits");
     #if defined(AVEL_AUTO_DETECT)
         static_assert(false, "Cannot detect capabilites on MSVC.");
     #endif
-#elif
+#else
     static_assert(
         false,
         "Compiler is not supported. Compilation not likely to function"
@@ -78,6 +78,14 @@ static_assert(sizeof(double) == 8, "Size of doubles should be 64 bits");
 //=========================================================
 // x86 macros
 //=========================================================
+
+#if defined(AVEL_AVX10_2)
+    #define AVEL_AVX10_1
+#endif
+
+#if defined(AVEL_AVX10_1)
+    #define AVEL_AVX2
+#endif
 
 #if defined(AVEL_GFNI)
     #define AVEL_AVX512F
@@ -268,6 +276,13 @@ static_assert(sizeof(double) == 8, "Size of doubles should be 64 bits");
         #include <arm_sve.h>
     #endif
 
+#elif defined(AVEL_MSVC)
+    #if defined(AVEL_X86)
+    #include <intrin.h>
+    #include <immintrin.h>
+    #endif
+
+
 #else
     static_assert(false, "Compiler not supported");
 #endif
@@ -280,14 +295,20 @@ static_assert(sizeof(double) == 8, "Size of doubles should be 64 bits");
 static_assert(false, "AVEL does not support SSE on its own. SSE2 required");
 #endif
 
-/*
 #if defined(AVEL_NEON) && !defined(AVEL_AARCH64)
 static_assert(false, "AVEL does not support 32-bit ARM at this time");
 #endif
-*/
 
 #if defined(AVEL_ARM) && defined(AVEL_X86)
 static_assert(false, "Macros for conflicting ISAs specified.");
+#endif
+
+#if defined(AVEL_ARM) && defined(AVEL_ICPX)
+static_assert(false, "Combination of ARM and ICPX is not supported")
+#endif
+
+#if defined(AVEL_ARM) && defined(AVEL_MSVC)
+static_assert(false, "Combination of ARM and MSVC is not supported")
 #endif
 
 #endif //AVEL_CAPABILITIES_HPP

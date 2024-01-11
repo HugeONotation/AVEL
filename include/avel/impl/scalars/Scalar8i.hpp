@@ -9,7 +9,7 @@ namespace avel {
 
     template<>
     [[nodiscard]]
-    AVEL_FINL std::int8_t broadcast_mask<std::int8_t>(bool x) {
+    AVEL_FINL std::int8_t set_bits<std::int8_t>(bool x) {
         return -std::int8_t(x);
     }
 
@@ -41,6 +41,11 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::int8_t countr_one(std::int8_t x) {
         return countr_one(std::uint8_t(x));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::int8_t bit_width(std::int8_t x) {
+        return bit_width(std::uint8_t(x));
     }
 
     [[nodiscard]]
@@ -155,6 +160,70 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::int8_t average(std::int8_t a, std::int8_t b) {
         return (std::int16_t(a) + std::int16_t(b)) / 2;
+    }
+
+    //=====================================================
+    // Comparison operators
+    //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_equal(std::uint8_t x, std::int8_t y) {
+        return std::int16_t(x) == std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_equal(std::int8_t x, std::uint8_t y) {
+        return std::int16_t(x) == std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_not_equal(std::uint8_t x, std::int8_t y) {
+        return std::int16_t(x) != std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_not_equal(std::int8_t x, std::uint8_t y) {
+        return std::int16_t(x) != std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less(std::uint8_t x, std::int8_t y) {
+        return std::int16_t(x) < std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less(std::int8_t x, std::uint8_t y) {
+        return std::int16_t(x) < std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less_equal(std::uint8_t x, std::int8_t y) {
+        return std::int16_t(x) <= std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_less_equal(std::int8_t x, std::uint8_t y) {
+        return std::int16_t(x) <= std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater(std::uint8_t x, std::int8_t y) {
+        return std::int16_t(x) > std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater(std::int8_t x, std::uint8_t y) {
+        return std::int16_t(x) > std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater_equal(std::uint8_t x, std::int8_t y) {
+        return std::int16_t(x) >= std::int16_t(y);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool cmp_greater_equal(std::int8_t x, std::uint8_t y) {
+        return std::int16_t(x) >= std::int16_t(y);
     }
 
 }
