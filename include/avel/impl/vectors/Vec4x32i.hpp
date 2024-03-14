@@ -568,7 +568,7 @@ namespace avel {
         }
 
         AVEL_FINL Vector& operator*=(Vector rhs) {
-            #if defined(AVEL_SSE41)
+            #if defined(AVEL_SSE4_1)
             content = _mm_mullo_epi32(content, decay(rhs));
 
             #elif defined(AVEL_SSE2)
@@ -1006,7 +1006,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec4x32i max(vec4x32i a, vec4x32i b) {
-        #if defined(AVEL_SSE41)
+        #if defined(AVEL_SSE4_1)
         return vec4x32i{_mm_max_epi32(decay(a), decay(b))};
 
         #elif defined(AVEL_SSE2)
@@ -1021,7 +1021,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL vec4x32i min(vec4x32i a, vec4x32i b) {
-        #if defined(AVEL_SSE41)
+        #if defined(AVEL_SSE4_1)
         return vec4x32i{_mm_min_epi32(decay(a), decay(b))};
 
         #elif defined(AVEL_SSE2)
@@ -1036,7 +1036,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::array<vec4x32i, 2> minmax(vec4x32i a, vec4x32i b) {
-        #if defined(AVEL_SSE41)
+        #if defined(AVEL_SSE4_1)
         return {
             vec4x32i{_mm_min_epi32(decay(a), decay(b))},
             vec4x32i{_mm_max_epi32(decay(a), decay(b))}
@@ -1718,6 +1718,15 @@ namespace avel {
     }
 
     AVEL_SIGNED_VECTOR_BIT_FUNCTIONS(vec4x32i, mask4x32i, vec4x32u)
+
+    [[nodiscard]]
+    AVEL_FINL vec4x32i countl_sign(vec4x32i v) {
+        #if defined(AVEL_NEON)
+        return vec4x32i{vclsq_s32(decay(v))};
+        #else
+        return avel::countl_zero((v ^ avel::bit_shift_right<1>(v))) - vec4x32i{1};
+        #endif
+    }
 
 }
 

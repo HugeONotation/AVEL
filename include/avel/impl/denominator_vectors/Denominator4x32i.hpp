@@ -62,6 +62,49 @@ namespace avel {
             return div(lhs, rhs).rem;
         }
 
+        AVEL_FINL Denom4x32i& operator<<=(vec4x32i s) {
+            auto effective_s = avel::min(avel::countl_sign(d), s);
+
+            d <<= s;
+            sh += effective_s;
+
+            return *this;
+        }
+
+        AVEL_FINL Denom4x32i& operator>>=(vec4x32i s) {
+            auto effective_s = avel::min(avel::countr_zero(d), s);
+
+            d >>= s;
+            sh -= effective_s;
+
+            return *this;
+        }
+
+        [[nodiscard]]
+        AVEL_FINL Denom4x32i operator<<(vec4x32i s) const {
+            Denom4x32i ret = *this;
+            ret <<= s;
+
+            return ret;
+        }
+
+        [[nodiscard]]
+        AVEL_FINL Denom4x32i operator>>(vec4x32i s) const {
+            Denom4x32i ret = *this;
+            ret >>= s;
+
+            return ret;
+        }
+
+        //=================================================
+        // Accessors
+        //=================================================
+
+        [[nodiscard]]
+        AVEL_FINL vec4x32i value() const {
+            return d;
+        }
+
     private:
 
         //=================================================
@@ -78,7 +121,7 @@ namespace avel {
         //=================================================
 
         static vec4x32i mulhi(vec4x32i x, vec4x32i y) {
-            #if defined(AVEL_SSE41)
+            #if defined(AVEL_SSE4_1)
             auto t0 = _mm_unpacklo_epi32(decay(x), decay(x));
             auto t1 = _mm_unpackhi_epi32(decay(x), decay(x));
             auto t2 = _mm_unpacklo_epi32(decay(y), decay(y));
