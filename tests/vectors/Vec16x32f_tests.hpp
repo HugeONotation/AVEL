@@ -1781,8 +1781,6 @@ namespace avel_tests {
         }
     }
 
-
-    /*
     TEST(Vec16x32f, fmod_edge_cases) {
         EXPECT_TRUE(avel::all(avel::fmod(vec16x32f{+0.0f}, vec16x32f{1.0f}) == vec16x32f{+0.0f}));
         EXPECT_TRUE(avel::all(avel::fmod(vec16x32f{-0.0f}, vec16x32f{1.0f}) == vec16x32f{-0.0f}));
@@ -1819,7 +1817,6 @@ namespace avel_tests {
             EXPECT_TRUE(all(results == vec16x32f{expected}));
         }
     }
-    */
 
     TEST(Vec16x32f, frac_edge_cases) {
         vec16x32f pos_zero{+0.0};

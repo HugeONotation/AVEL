@@ -9,7 +9,6 @@ namespace avel_tests {
     // General Floating-point Operations
     //=====================================================
 
-    /*
     TEST(Scalar32f_tests, fmod_edge_cases) {
         EXPECT_TRUE(compare_common_bytes(avel::fmod(+0.0f, 1.0f), +0.0f));
         EXPECT_TRUE(compare_common_bytes(avel::fmod(-0.0f, 1.0f), -0.0f));
@@ -99,7 +98,6 @@ namespace avel_tests {
             }
         }
     }
-    */
 
     //=====================================================
     // Floating-Point Manipulation Functions

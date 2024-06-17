@@ -9,7 +9,6 @@ namespace avel_tests {
     // General Floating-point Operations
     //=====================================================
 
-    /*
     TEST(Scalar64f_tests, fmod_edge_cases) {
         EXPECT_TRUE(compare_common_bytes(avel::fmod(+0.0, 1.0), +0.0));
         EXPECT_TRUE(compare_common_bytes(avel::fmod(-0.0, 1.0), -0.0));
@@ -72,7 +71,7 @@ namespace avel_tests {
         for (std::size_t i = 0; i < iterations; ++i) {
             double x = random_val<double>();
             double y = random_val<double>();
-git
+
             double expected = std::fmod(x, y);
             double observed = avel::fmod(x, y);
 
@@ -82,7 +81,6 @@ git
             }
         }
     }
-    */
 
     TEST(Scalar64f_tests, frac_edge_cases) {
         EXPECT_EQ(+0.0, avel::frac(+0.0));
