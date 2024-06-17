@@ -338,7 +338,7 @@ void clamp_vector(const std::vector<std::uint32_t>& values) {
 }
 ```
 
-### Use of Reciprocal Classes
+### Use of Denominator Classes
 ```c++
 #include AVEL_AUTO_DETECT
 #include <avel/Vectors.hpp>
@@ -363,7 +363,7 @@ int main() {
 
 ```
 
-### Use of Vector Reciprocal Classes
+### Use of Vector Denominator Classes
 ```c++
 #include AVEL_AUTODETECT
 
