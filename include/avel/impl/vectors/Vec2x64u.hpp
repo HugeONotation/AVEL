@@ -73,7 +73,7 @@ namespace avel {
         #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
             content(primitive(b ? 0x3 : 0x0)) {}
         #elif defined(AVEL_SSE2)
-            content(b ? _mm_set1_epi64x(-1ull) : _mm_setzero_si128()) {}
+            content(_mm_set1_epi64x(-b)) {}
         #endif
         #if defined(AVEL_NEON)
             content(vmovq_n_u64(b ? -1 : 0)) {}
