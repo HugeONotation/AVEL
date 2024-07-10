@@ -11,9 +11,10 @@
 
 namespace avel {
 
-    template<class Integer, std::uint32_t Fractional_bits>
+    template<class Integer, std::size_t Fractional_bits, bool Saturate = false>
     class Fixed_point;
 
+    /*
     template<std::uint32_t Fractional_bits>
     class Fixed_point<std::uint8_t, Fractional_bits>;
 
@@ -217,11 +218,9 @@ namespace avel {
             return *this;
         }
 
-        /*
         Fixed_point operator-() const {
             //TODO: Implement once signed fixed-point numbers are implemented
         }
-        */
 
         //=================================================
         // Conversion Operators
@@ -254,6 +253,7 @@ namespace avel {
         2 == sizeof(Fixed_point<std::uint16_t, 0>),
         "Fixed-point scalar was not of the expected size!"
     );
+    */
 
     /*
     template<std::uint32_t Fractional_bits>
@@ -477,34 +477,8 @@ namespace avel {
     };
     */
 
-    Fixed_point<std::uint8_t, 1> operator ""_8q0(long double);
-    Fixed_point<std::uint8_t, 2> operator ""_7q1(long double);
-    Fixed_point<std::uint8_t, 3> operator ""_6q2(long double);
-    Fixed_point<std::uint8_t, 4> operator ""_5q3(long double);
-    Fixed_point<std::uint8_t, 5> operator ""_4q4(long double);
-    Fixed_point<std::uint8_t, 6> operator ""_3q5(long double);
-    Fixed_point<std::uint8_t, 7> operator ""_2q6(long double);
-    Fixed_point<std::uint8_t, 7> operator ""_1q7(long double);
-    Fixed_point<std::uint8_t, 8> operator ""_0q8(long double);
-
-    Fixed_point<std::uint16_t, 1> operator ""_16q0(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_15q1(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_14q2(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_13q3(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_12q4(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_11q5(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_10q6(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_9q7(long double);
-    Fixed_point<std::uint16_t, 1> operator ""_8q8(long double);
-    Fixed_point<std::uint16_t, 2> operator ""_7q9(long double);
-    Fixed_point<std::uint16_t, 3> operator ""_6q10(long double);
-    Fixed_point<std::uint16_t, 4> operator ""_5q11(long double);
-    Fixed_point<std::uint16_t, 5> operator ""_4q12(long double);
-    Fixed_point<std::uint16_t, 6> operator ""_3q13(long double);
-    Fixed_point<std::uint16_t, 7> operator ""_2q14(long double);
-    Fixed_point<std::uint16_t, 7> operator ""_1q15(long double);
-    Fixed_point<std::uint16_t, 8> operator ""_0q16(long double);
-
 }
+
+#include "impl/fixed_point_scalars/Fixed_point_scalars.hpp"
 
 #endif //AVEL_FIXED_POINT_HPP
