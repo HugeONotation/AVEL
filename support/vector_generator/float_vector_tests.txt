@@ -1615,8 +1615,6 @@ namespace avel_tests {
         }
     }
 
-
-    /*
     TEST($<Vector_alias>, fmod_edge_cases) {
         EXPECT_TRUE(avel::all(avel::fmod($<vector_alias>{+0.0f}, $<vector_alias>{1.0f}) == $<vector_alias>{+0.0f}));
         EXPECT_TRUE(avel::all(avel::fmod($<vector_alias>{-0.0f}, $<vector_alias>{1.0f}) == $<vector_alias>{-0.0f}));
@@ -1653,7 +1651,6 @@ namespace avel_tests {
             EXPECT_TRUE(all(results == $<vector_alias>{expected}));
         }
     }
-    */
 
     TEST($<Vector_alias>, frac_edge_cases) {
         $<vector_alias> pos_zero{+0.0};

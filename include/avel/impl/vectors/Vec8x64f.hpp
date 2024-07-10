@@ -17,8 +17,13 @@ namespace avel {
 
     AVEL_FINL vec8x64f trunc(vec8x64f x);
     AVEL_FINL vec8x64f fmod(vec8x64f a, vec8x64f b);
+    AVEL_FINL mask8x64f signbit(vec8x64f x);
     AVEL_FINL mask8x64f isnan(vec8x64f v);
+    AVEL_FINL mask8x64f isinf(vec8x64f v);
     AVEL_FINL vec8x64f copysign(vec8x64f mag, vec8x64f sign);
+    AVEL_FINL vec8x64f ldexp(vec8x64f arg, vec8x64i exp);
+    AVEL_FINL vec8x64f frexp(vec8x64f v, vec8x64i* exp);
+    AVEL_FINL vec8x64i ilogb(vec8x64f x);
 
 
 
@@ -670,6 +675,37 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL vec8x64f frac(vec8x64f v) {
         return v - avel::trunc(v);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL vec8x64f fmod(vec8x64f x, vec8x64f y) {
+        mask8x64f result_sign = avel::signbit(x);
+
+        mask8x64f is_result_nan =
+            avel::isnan(x) |
+            avel::isnan(y) |
+            avel::isinf(x) |
+            y == vec8x64f{0.0f};
+
+        x = avel::abs(x);
+        y = avel::abs(y);
+
+        //TODO: Use AVX-512 vgetmant** instruction
+        vec8x64i dummy;
+        vec8x64f t = avel::ldexp(avel::frexp(y, &dummy), avel::ilogb(x) + vec8x64i{1});
+
+        // Core loop
+        mask8x64f m = (x >= y) & !is_result_nan;
+        while (avel::any(m)) {
+            x -= avel::keep((x >= t) & m, t);
+            t *= vec8x64f{0.5f};
+            m &= (x >= y);
+        }
+
+        x = avel::negate(result_sign, x);
+        x = avel::blend(is_result_nan, vec8x64f{NAN}, x);
+
+        return x;
     }
 
     //=====================================================

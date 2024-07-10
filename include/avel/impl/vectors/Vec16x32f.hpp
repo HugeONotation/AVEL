@@ -20,7 +20,11 @@ namespace avel {
     AVEL_FINL mask16x32f isunordered(vec16x32f, vec16x32f);
     AVEL_FINL mask16x32f signbit(vec16x32f x);
     AVEL_FINL mask16x32f isnan(vec16x32f v);
+    AVEL_FINL mask16x32f isinf(vec16x32f v);
     AVEL_FINL vec16x32f copysign(vec16x32f mag, vec16x32f sign);
+    AVEL_FINL vec16x32f ldexp(vec16x32f arg, vec16x32i exp);
+    AVEL_FINL vec16x32f frexp(vec16x32f v, vec16x32i* exp);
+    AVEL_FINL vec16x32i ilogb(vec16x32f x);
 
 
 
@@ -699,6 +703,37 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL vec16x32f frac(vec16x32f v) {
         return v - avel::trunc(v);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL vec16x32f fmod(vec16x32f x, vec16x32f y) {
+        mask16x32f result_sign = avel::signbit(x);
+
+        mask16x32f is_result_nan =
+            avel::isnan(x) |
+            avel::isnan(y) |
+            avel::isinf(x) |
+            y == vec16x32f{0.0f};
+
+        x = avel::abs(x);
+        y = avel::abs(y);
+
+        //TODO: Use AVX-512 vgetmant** instruction
+        vec16x32i dummy;
+        vec16x32f t = avel::ldexp(avel::frexp(y, &dummy), avel::ilogb(x) + vec16x32i{1});
+
+        // Core loop
+        mask16x32f m = (x >= y) & !is_result_nan;
+        while (avel::any(m)) {
+            x -= avel::keep((x >= t) & m, t);
+            t *= vec16x32f{0.5f};
+            m &= (x >= y);
+        }
+
+        x = avel::negate(result_sign, x);
+        x = avel::blend(is_result_nan, vec16x32f{NAN}, x);
+
+        return x;
     }
 
     //=====================================================

@@ -611,13 +611,13 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec1x64f fmod(vec1x64f a, vec1x64f b) {
-        return vec1x64f{avel::fmod(decay(a), decay(b))};
+    AVEL_FINL vec1x64f frac(vec1x64f v) {
+        return vec1x64f{frac(decay(v))};
     }
 
     [[nodiscard]]
-    AVEL_FINL vec1x64f frac(vec1x64f v) {
-        return vec1x64f{frac(decay(v))};
+    AVEL_FINL vec1x64f fmod(vec1x64f x, vec1x64f y) {
+        return vec1x64f{avel::fmod(decay(x), decay(y))};
     }
 
     //=====================================================
