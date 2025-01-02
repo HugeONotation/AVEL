@@ -713,6 +713,45 @@ namespace avel::benchmarks::div_8u {
 
     #if defined(AVEL_AVX512BW)
 
+    vec64x8u vec64x8u_32f_cvt_impl(vec64x8u x, vec64x8u y) {
+        __m512i x_q0 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x0));
+        __m512i x_q1 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x1));
+        __m512i x_q2 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x2));
+        __m512i x_q3 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x3));
+
+        __m512i y_q0 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x0));
+        __m512i y_q1 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x1));
+        __m512i y_q2 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x2));
+        __m512i y_q3 = _mm512_cvtepi8_epi32(_mm512_extracti32x4_epi32(decay(x), 0x3));
+
+        __m512i quot_q0 = _mm512_cvttps_epi32(_mm512_div_ps(_mm512_castsi512_ps(x_q0), _mm512_castsi512_ps(y_q0)));
+        __m512i quot_q1 = _mm512_cvttps_epi32(_mm512_div_ps(_mm512_castsi512_ps(x_q1), _mm512_castsi512_ps(y_q1)));
+        __m512i quot_q2 = _mm512_cvttps_epi32(_mm512_div_ps(_mm512_castsi512_ps(x_q2), _mm512_castsi512_ps(y_q2)));
+        __m512i quot_q3 = _mm512_cvttps_epi32(_mm512_div_ps(_mm512_castsi512_ps(x_q3), _mm512_castsi512_ps(y_q3)));
+
+        __m128i quot0 = _mm512_cvtepi32_epi8(quot_q0);
+        __m128i quot1 = _mm512_cvtepi32_epi8(quot_q1);
+        __m128i quot2 = _mm512_cvtepi32_epi8(quot_q2);
+        __m128i quot3 = _mm512_cvtepi32_epi8(quot_q3);
+
+        __m256i quot_h0 = _mm256_inserti128_si256(_mm256_castsi128_si256(quot0), quot1, 0x01);
+        __m256i quot_h1 = _mm256_inserti128_si256(_mm256_castsi128_si256(quot2), quot3, 0x01);
+
+        __m512i quot = _mm512_inserti64x4(_mm512_castsi256_si512(quot_h0), quot_h1, 0x01);
+
+        return vec64x8u{quot};
+    }
+
+    auto vec64x8u_32f_cvt = vector_division_test_bench<vec64x8u, vec64x8u_32f_cvt_impl>;
+
+    BENCHMARK(div_8u::vec64x8u_32f_cvt);
+
+    #endif
+
+
+
+    #if defined(AVEL_AVX512BW)
+
     vec64x8u vec64x8u_32f_div_subnormal_unpacking_impl(vec64x8u x, vec64x8u y) {
         __m512i x_raw = decay(x);
 
