@@ -164,6 +164,21 @@ namespace avel::benchmarks {
         }
     }
 
+    template<class T, class R, R(*Func)(T, T*)>
+    void scalar_test_bench(benchmark::State& state) {
+        typename std::enable_if_t<std::is_fundamental_v<T>, T> dummy;
+
+        auto inputs = random_values<T>(available_cache_size / sizeof(T));
+        T output;
+
+        for (auto _ : state) {
+            for (std::size_t i = 0; i < inputs.size(); ++i) {
+                auto tmp = Func(inputs[i], &output);
+                benchmark::DoNotOptimize(tmp);
+            }
+        }
+    }
+
     template<class T, class U, T(*Func)(T, U)>
     void scalar_test_bench(benchmark::State& state) {
         typename std::enable_if_t<std::is_fundamental_v<T>, T> dummy;
@@ -216,6 +231,18 @@ namespace avel::benchmarks {
         }
     }
 
+    template<class T, class U, U(*Func)(T)>
+    void scalar_conversion_test_bench(benchmark::State& state) {
+        using scalar = T;
+        auto inputs0 = random_values<scalar>(available_cache_size / sizeof(scalar));
+
+        for (auto _ : state) {
+            for (std::size_t i = 0; i < inputs0.size(); ++i) {
+                U tmp = Func(inputs0[i]);
+                benchmark::DoNotOptimize(tmp);
+            }
+        }
+    }
 
 
     template<class Vec_mask, Vec_mask(*Func)(bool)>
@@ -244,6 +271,22 @@ namespace avel::benchmarks {
         for (auto _ : state) {
             for (std::size_t i = 0; i < inputs0.size(); i += Vector::width) {
                 Ret tmp = Func(avel::load<Vector>(inputs0.data() + i));
+                benchmark::DoNotOptimize(tmp);
+            }
+        }
+    }
+
+    template<class Vector, class Ret, Ret(*Func)(Vector, Vector*)>
+    void vector_test_bench(benchmark::State& state) {
+        typename std::enable_if_t<avel::is_vector_v<Vector>, Vector> dummy;
+
+        using scalar = typename Vector::scalar;
+        auto inputs0 = random_values<scalar>(available_cache_size / sizeof(scalar));
+        Vector output{};
+
+        for (auto _ : state) {
+            for (std::size_t i = 0; i < inputs0.size(); i += Vector::width) {
+                Ret tmp = Func(avel::load<Vector>(inputs0.data() + i), &output);
                 benchmark::DoNotOptimize(tmp);
             }
         }
@@ -293,6 +336,50 @@ namespace avel::benchmarks {
         }
     }
 
+    template<class Vector, Vector(*Func)(Vector, typename Vector::mask)>
+    void vector_mask_test_bench(benchmark::State& state) {
+        typename std::enable_if_t<avel::is_vector_v<Vector>, Vector> dummy;
+
+        //TODO: Choose array sizes more carefully
+        using scalar = typename Vector::scalar;
+        std::vector<scalar> inputs0 = random_values<scalar>(available_cache_size / sizeof(scalar) / 2);
+        std::vector<scalar> inputs1 = random_values<scalar>(available_cache_size / sizeof(scalar) / 2);
+
+        constexpr scalar threshold = 1ull << (CHAR_BIT * sizeof(scalar) - 1);
+
+        for (auto _ : state) {
+            for (std::size_t i = 0; i < inputs0.size(); i += Vector::width) {
+                Vector values0 = avel::load<Vector>(inputs0.data() + i);
+                Vector values1 = avel::load<Vector>(inputs1.data() + i);
+
+                typename Vector::mask operand2 = values1 < Vector{threshold};
+
+                Vector tmp = Func(values0, operand2);
+                benchmark::DoNotOptimize(tmp);
+            }
+        }
+    }
+
+    template<class Vector, Vector(*Func)(typename Vector::mask)>
+    void mask_test_bench(benchmark::State& state) {
+        typename std::enable_if_t<avel::is_vector_v<Vector>, Vector> dummy;
+
+        //TODO: Choose array sizes more carefully
+        using scalar = typename Vector::scalar;
+        std::vector<scalar> inputs = random_values<scalar>(available_cache_size / sizeof(scalar));
+
+        constexpr scalar threshold = 1ull << (CHAR_BIT * sizeof(scalar) - 1);
+
+        for (auto _ : state) {
+            for (std::size_t i = 0; i < inputs.size(); i += Vector::width) {
+                Vector values = avel::load<Vector>(inputs.data() + i);
+
+                Vector tmp = Func(values < Vector{threshold});
+                benchmark::DoNotOptimize(tmp);
+            }
+        }
+    }
+
     template<class Vector, Vector(*Func)(Vector, Vector)>
     void vector_division_test_bench(benchmark::State& state) {
         typename std::enable_if_t<avel::is_vector_v<Vector>, Vector> dummy;
@@ -306,6 +393,20 @@ namespace avel::benchmarks {
                 auto values0 = avel::load<Vector>(inputs0.data() + i);
                 auto values1 = avel::load<Vector>(inputs1.data() + i);
                 auto ret = Func(values0, values1);
+                benchmark::DoNotOptimize(ret);
+            }
+        }
+    }
+
+    template<class Vector0, class Vector1, Vector1(*Func)(Vector0)>
+    void vector_conversion_test_bench(benchmark::State& state) {
+        using scalar = typename Vector0::scalar;
+        auto inputs = random_values<scalar>(available_cache_size / sizeof(scalar));
+
+        for (auto _ : state) {
+            for (std::size_t i = 0; i < inputs.size(); i += Vector0::width) {
+                auto values = avel::load<Vector>(inputs.data() + i);
+                Vector1 ret = Func(values);
                 benchmark::DoNotOptimize(ret);
             }
         }

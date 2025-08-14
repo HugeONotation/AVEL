@@ -11,6 +11,8 @@ namespace avel {
 
     std::uint8_t min(std::uint8_t a, std::uint8_t b);
 
+    std::uint8_t rotl(std::uint8_t x, long long s);
+
     //=====================================================
     // Bit manipulation
     //=====================================================
@@ -208,8 +210,9 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::uint8_t bit_ceil(std::uint8_t x) {
         #if defined(AVEL_LZCNT)
-        auto sh = (32 - _lzcnt_u32(x - 1));
-        auto result = 1 << sh;
+        //TODO: Optimize further
+        auto sh = (32u - _lzcnt_u32(x - 1u)) ;
+        auto result = (x <= 0x80u) << (sh % 8);
         return result;
 
         #elif defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))

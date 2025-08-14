@@ -1,0 +1,4 @@
+#ifndef TRUNC_CAST_HPP
+#define TRUNC_CAST_HPP
+
+#endif //TRUNC_CAST_HPP

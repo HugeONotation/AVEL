@@ -9,7 +9,6 @@ namespace avel_tests {
     // General Floating-point Operations
     //=====================================================
 
-    /*
     TEST(Scalar32f_tests, fmod_edge_cases) {
         EXPECT_TRUE(compare_common_bytes(avel::fmod(+0.0f, 1.0f), +0.0f));
         EXPECT_TRUE(compare_common_bytes(avel::fmod(-0.0f, 1.0f), -0.0f));
@@ -99,7 +98,6 @@ namespace avel_tests {
             }
         }
     }
-    */
 
     //=====================================================
     // Floating-Point Manipulation Functions
@@ -157,7 +155,7 @@ namespace avel_tests {
     }
 
     //=====================================================
-    // Floating-point classification
+    // Floating-point
     //=====================================================
 
     TEST(Scalar32f_tests, frexp) {
@@ -227,6 +225,47 @@ namespace avel_tests {
         auto val5 = bit_cast<float>(0x00400000);
         EXPECT_EQ(avel::frexp(val5, &exp), +0.5f);
         EXPECT_EQ(exp, -126);
+    }
+
+    TEST(Scalar32f_tests, modf_edge_cases) {
+        float whole0 = 0.0f;
+        float sig0 = avel::modf(0.0f, &whole0);
+        EXPECT_EQ(whole0, 0.0f);
+        EXPECT_EQ(sig0, 0.0f);
+
+        float whole1 = 0.0f;
+        float frac1 = avel::modf(-0.0f, &whole1);
+        EXPECT_TRUE(avel::compare_common_bytes(whole1, -0.0f));
+        EXPECT_TRUE(avel::compare_common_bytes(frac1, -0.0f));
+
+        float whole2 = 0.0f;
+        float frac2 = avel::modf(NAN, &whole2);
+        EXPECT_TRUE(std::isnan(whole2));
+        EXPECT_TRUE(std::isnan(frac2));
+
+        float whole3 = 0.0f;
+        float frac3 = avel::modf(+INFINITY, &whole3);
+        EXPECT_EQ(whole3, +INFINITY);
+        EXPECT_TRUE(avel::compare_common_bytes(frac3, +0.0f));
+
+        float whole4 = 0.0f;
+        float frac4 = avel::modf(-INFINITY, &whole4);
+        EXPECT_EQ(whole4, -INFINITY);
+        EXPECT_TRUE(avel::compare_common_bytes(frac4, -0.0f));
+    }
+
+    TEST(Scalar32f_tests, modf_random) {
+        for (std::size_t i = 0; i < iterations; i++) {
+            float input = random32f();
+            float expected_exp0 = 0.0f;
+            float expected_frac0 = std::modf(input, &expected_exp0);
+
+            float observed_exp0 = 0.0f;
+            float observed_frac0 = avel::modf(input, &observed_exp0);
+
+            EXPECT_EQ(expected_exp0, observed_exp0);
+            EXPECT_EQ(expected_frac0, observed_frac0);
+        }
     }
 
     TEST(Sclar32f_tests, ldexp) {

@@ -27,12 +27,12 @@
 //#define AVEL_SSE4_1
 //#define AVEL_SSSE3
 //#define AVEL_SSE3
-//#define AVEL_SSE2
+#define AVEL_SSE2
 //#define AVEL_BMI2
 //#define AVEL_BMI
 //#define AVEL_LZCNT
 //#define AVEL_POPCNT
-//#define AVEL_X86
+#define AVEL_X86
 
 //#define AVEL_AARCH64
 //#define AVEL_NEON
@@ -335,7 +335,7 @@ namespace avel_tests {
 
     template<class T, class U>
     [[nodiscard]]
-    T compare_common_bytes(const T& t, const U& u) {
+    bool compare_common_bytes(const T& t, const U& u) {
         static_assert(std::is_trivial<T>::value, "Target type must be trivial");
         static_assert(std::is_trivial<U>::value, "Source type must be trivial");
 

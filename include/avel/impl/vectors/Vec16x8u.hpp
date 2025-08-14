@@ -375,6 +375,11 @@ namespace avel {
         return _mm_movemask_epi8(decay(m)) & (1 << N);
 
         #endif
+
+        #if defined(AVEL_NEON)
+        return bool(vgetq_lane_u8(decay(m), N));
+
+        #endif
     }
 
     template<std::uint32_t N>
@@ -396,6 +401,11 @@ namespace avel {
         auto lane_cleared = _mm_andnot_si128(lane_mask, decay(m));
         auto lane_filled  = _mm_or_si128(lane_cleared, lane_value);
         return mask16x8u{lane_filled};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask16x8u{vsetq_lane_u8(b ? -1 : 0, decay(m), N)};
 
         #endif
     }
@@ -2520,92 +2530,109 @@ namespace avel {
         return {vec16x8u{narrowed_quotient}, vec16x8u{narrowed_remainder}};
 
         #elif defined(AVEL_SSE2)
-        vec16x8u quotient{0x00};
+        __m128i x_reg = decay(x);
+        __m128i y_reg = decay(y);
 
-        mask16x8u b;
-        int i = 0;
+        __m128i undef = _mm_undefined_si128();
+        __m128i bit_mask = _mm_cmpeq_epi8(undef, undef);
+        __m128i q_reg = _mm_setzero_si128();
 
-        if (none(x >= y)) {
-            return {quotient, x};
+        {   // Iteration 0
+            bit_mask = _mm_add_epi8(bit_mask, bit_mask);
+
+            __m128i x_shifted = _mm_andnot_si128(bit_mask, _mm_srli_epi16(x_reg, 7));
+            __m128i y_shifted = _mm_slli_epi16(_mm_andnot_si128(bit_mask, y_reg), 7);
+
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (bit_shift_right<7>(x) >= y);
-        x -= (set_bits(b) & bit_shift_left<7>(y));
-        quotient -= set_bits(b);
+        {   // Iteration 1
+            bit_mask = _mm_add_epi8(bit_mask, bit_mask);
 
-        if (none(x >= y)) {
-            i = 7;
-            goto avel_div16x8u_early_end;
+            __m128i x_shifted = _mm_andnot_si128(bit_mask, _mm_srli_epi16(x_reg, 6));
+            __m128i y_shifted = _mm_slli_epi16(_mm_andnot_si128(bit_mask, y_reg), 6);
+
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (bit_shift_right<6>(x) >= y);
-        x -= (set_bits(b) & bit_shift_left<6>(y));
-        quotient += quotient;
-        quotient -= set_bits(b);
+        {   // Iteration 2
+            bit_mask = _mm_add_epi8(bit_mask, bit_mask);
 
-        if (none(x >= y)) {
-            i = 6;
-            goto avel_div16x8u_early_end;
+            __m128i x_shifted = _mm_andnot_si128(bit_mask, _mm_srli_epi16(x_reg, 5));
+            __m128i y_shifted = _mm_slli_epi16(_mm_andnot_si128(bit_mask, y_reg), 5);
+
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (bit_shift_right<5>(x) >= y);
-        x -= (set_bits(b) & bit_shift_left<5>(y));
-        quotient += quotient;
-        quotient -= set_bits(b);
+        {   // Iteration 3
+            bit_mask = _mm_add_epi8(bit_mask, bit_mask);
 
-        if (none(x >= y)) {
-            i = 5;
-            goto avel_div16x8u_early_end;
+            __m128i x_shifted = _mm_andnot_si128(bit_mask, _mm_srli_epi16(x_reg, 4));
+            __m128i y_shifted = _mm_slli_epi16(_mm_andnot_si128(bit_mask, y_reg), 4);
+
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (bit_shift_right<4>(x) >= y);
-        x -= (set_bits(b) & bit_shift_left<4>(y));
-        quotient += quotient;
-        quotient -= set_bits(b);
+        {   // Iteration 4
+            bit_mask = _mm_add_epi8(bit_mask, bit_mask);
 
-        if (none(x >= y)) {
-            i = 4;
-            goto avel_div16x8u_early_end;
+            __m128i x_shifted = _mm_andnot_si128(bit_mask, _mm_srli_epi16(x_reg, 3));
+            __m128i y_shifted = _mm_slli_epi16(_mm_andnot_si128(bit_mask, y_reg), 3);
+
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (bit_shift_right<3>(x) >= y);
-        x -= (set_bits(b) & bit_shift_left<3>(y));
-        quotient += quotient;
-        quotient -= set_bits(b);
+        {   // Iteration 5
+            bit_mask = _mm_add_epi8(bit_mask, bit_mask);
 
-        if (none(x >= y)) {
-            i = 3;
-            goto avel_div16x8u_early_end;
+            __m128i x_shifted = _mm_andnot_si128(bit_mask, _mm_srli_epi16(x_reg, 2));
+            __m128i y_shifted = _mm_add_epi8(y_reg, y_reg);
+            y_shifted = _mm_add_epi8(y_shifted, y_shifted);
+
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (bit_shift_right<2>(x) >= y);
-        x -= (set_bits(b) & bit_shift_left<2>(y));
-        quotient += quotient;
-        quotient -= set_bits(b);
+        {   // Iteration 6
+            bit_mask = _mm_add_epi8(bit_mask, bit_mask);
 
-        if (none(x >= y)) {
-            i = 2;
-            goto avel_div16x8u_early_end;
+            __m128i x_shifted = _mm_andnot_si128(bit_mask, _mm_srli_epi16(x_reg, 1));
+            __m128i y_shifted = _mm_add_epi8(y_reg, y_reg);
+
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (bit_shift_right<1>(x) >= y);
-        x -= (set_bits(b) & bit_shift_left<1>(y));
-        quotient += quotient;
-        quotient -= set_bits(b);
+        {   // Iteration 7
+            __m128i x_shifted = x_reg;
+            __m128i y_shifted = y_reg;
 
-        if (none(x >= y)) {
-            i = 1;
-            goto avel_div16x8u_early_end;
+            __m128i mask = _mm_cmpeq_epi8(_mm_max_epu8(x_shifted, y_reg), x_shifted);
+            x_reg = _mm_sub_epi8(x_reg, _mm_and_si128(mask, y_shifted));
+            q_reg = _mm_add_epi8(q_reg, q_reg);
+            q_reg = _mm_sub_epi8(q_reg, mask);
         }
 
-        b = (x >= y);
-        x -= (set_bits(b) & y);
-        quotient += quotient;
-        quotient -= set_bits(b);
-
-        avel_div16x8u_early_end:
-        quotient = _mm_sll_epi16(decay(quotient), _mm_cvtsi32_si128(i));
-        return {quotient, x};
+        return {vec16x8u{q_reg}, vec16x8u{x_reg}};
 
         #endif
 
@@ -3259,7 +3286,8 @@ namespace avel {
         auto partial0 = _mm_shuffle_epi8(table0, lo_nibble);
         auto partial1 = _mm_shuffle_epi8(table1, hi_nibble);
 
-        auto ret = _mm_add_epi8(_mm_max_epu8(partial0, partial1), _mm_set1_epi8(0x01));
+        auto max_partial = _mm_max_epu8(partial0, partial1);
+        auto ret = _mm_add_epi8(max_partial, _mm_set1_epi8(0x01));
         return vec16x8u{_mm_sub_epi8(ret, zero_mask)};
 
         #elif defined(AVEL_SSE2)

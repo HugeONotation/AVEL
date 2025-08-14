@@ -49,7 +49,7 @@ namespace avel {
 
     template<class T, class U>
     [[nodiscard]]
-    T compare_common_bytes(const T& t, const U& u) {
+    bool compare_common_bytes(const T& t, const U& u) {
         static_assert(std::is_trivial<T>::value, "Target type must be trivial");
         static_assert(std::is_trivial<U>::value, "Source type must be trivial");
 

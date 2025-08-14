@@ -9,34 +9,34 @@ on:
       - 'run_avel_tests.py'
       - 'CMakeLists.txt'
 jobs:
-  AVEL-x86-tests-GCC-9:
+  AVEL-x86-tests-GCC-14:
     runs-on: ubuntu-latest
     steps:
-      - name: Ensure g++9 is Installed
-        run: sudo apt-get install g++-9 -y
+      - name: Ensure g++14 is Installed
+        run: sudo apt-get install g++-14 -y
       - name: Check out repository code
         uses: actions/checkout@v3
         with:
           submodules: 'true'
       - name: Set up Intel SDE
-        run: wget https://downloadmirror.intel.com/788820/sde-external-9.27.0-2023-09-13-lin.tar.xz &&
-             tar -xf sde-external-9.27.0-2023-09-13-lin.tar.xz
+        run: wget https://downloadmirror.intel.com/843185/sde-external-9.48.0-2024-11-25-lin.tar.xz &&
+             tar -xf sde-external-9.48.0-2024-11-25-lin.tar.xz
       - name: Run AVEL test script
-        run: python3 run_avel_tests.py -A"x86" -C"/usr/bin/g++-9" -L"./sde-external-9.27.0-2023-09-13-lin/sde64 -icl -- <exec>"
-  AVEL-x86-tests-Clang-11:
+        run: python3 run_avel_tests.py -A"x86" -C"/usr/bin/g++-14" -L"./sde-external-9.48.0-2024-11-25-lin/sde64 -icl -- <exec>"
+  AVEL-x86-tests-Clang-19:
     runs-on: ubuntu-latest
     steps:
-      - name: Ensure clang++-11 is Installed
-        run: sudo apt-get install clang++-11 -y
+      - name: Ensure clang++-19 is Installed
+        run: sudo apt-get install clang++-19 -y
       - name: Check out repository code
         uses: actions/checkout@v3
         with:
           submodules: 'true'
       - name: Set up Intel SDE
-        run: wget https://downloadmirror.intel.com/788820/sde-external-9.27.0-2023-09-13-lin.tar.xz &&
-             tar -xf sde-external-9.27.0-2023-09-13-lin.tar.xz
+        run: wget https://downloadmirror.intel.com/843185/sde-external-9.48.0-2024-11-25-lin.tar.xz &&
+             tar -xf sde-external-9.48.0-2024-11-25-lin.tar.xz
       - name: Run AVEL test script
-        run: python3 run_avel_tests.py -A"x86" -C"/usr/bin/clang++-11" -L"./sde-external-9.27.0-2023-09-13-lin/sde64 -icl -- <exec>"
+        run: python3 run_avel_tests.py -A"x86" -C"/usr/bin/clang++-19" -L"./sde-external-9.48.0-2024-11-25-lin/sde64 -future -- <exec>"
 
 #  AVEL-ARM-tests:
 #    runs-on: ubuntu-latest

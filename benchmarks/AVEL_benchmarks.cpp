@@ -1,3 +1,7 @@
+//=========================================================
+// x86 feature macros
+//=========================================================
+
 //#define AVEL_FORCE_INLINE
 //#define AVEL_AUTO_DETECT
 //#define AVEL_GFNI
@@ -24,8 +28,16 @@
 //#define AVEL_POPCNT
 //#define AVEL_X86
 
+//=========================================================
+// Arm feature macros
+//=========================================================
+
 //#define AVEL_AARCH64
 //#define AVEL_NEON
+
+//=========================================================
+// Misc. Includes
+//=========================================================
 
 #include <avel/Avel.hpp>
 
@@ -34,21 +46,83 @@
 
 #include "AVEL_benchmarks.hpp"
 
-//#include "average_uint8/Average_uint8.hpp"
-//#include "division_uint8/Division_uint8.hpp"
-//#include "midpoint_uint8/Midpoint_uint8.hpp"
+//=========================================================
+// Benchmark includes
+//=========================================================
 
-//#include "division_uint16/Division_uint16.hpp"
-//#include "countr_zero_uint16/Countr_zero_uint16.hpp"
+// #include "Bitwise_not_8u.hpp"
+// #include "Bitwise_not_16u.hpp"
+// #include "Bitwise_not_32u.hpp"
+// #include "Bitwise_not_64u.hpp"
 
-//#include "Division_uint8.hpp"
-//#include "Division_uint16.hpp"
-//#include "Division_uint32.hpp"
+// #include "Bitwise_and_8u.hpp"
+// #include "Bitwise_and_16u.hpp"
+// #include "Bitwise_and_32u.hpp"
+// #include "Bitwise_and_64u.hpp"
 
-//#include "Mulhi_uint8.hpp"
-//#include "Mulhi_uint16.hpp"e
+// #include "Bitwise_or_8u.hpp"
+// #include "Bitwise_or_16u.hpp"
+// #include "Bitwise_or_32u.hpp"
+// #include "Bitwise_or_64u.hpp"
 
-//#include "Popcnt_uint64.hpp"
+// #include "Bitwise_xor_8u.hpp"
+// #include "Bitwise_xor_16u.hpp"
+// #include "Bitwise_xor_32u.hpp"
+// #include "Bitwise_xor_64u.hpp"
+
+// #include "Bit_ceil_8u.hpp"
+// #include "Bit_ceil_16u.hpp"
+// #include "Bit_ceil_32u.hpp"
+// #include "Bit_ceil_64u.hpp"
+
+// #include "Bit_floor_8u.hpp"
+// #include "Bit_floor_16u.hpp"
+// #include "Bit_floor_32u.hpp"
+// #include "Bit_floor_64u.hpp"
+
+// #include "Bit_width_8u.hpp"
+// #include "Bit_width_16u.hpp"
+// #include "Bit_width_32u.hpp"
+// #include "Bit_width_64u.hpp"
+
+// #include "Popcount_8u.hpp"
+// #include "Popcount_16u.hpp"
+// #include "Popcount_32u.hpp"
+// #include "Popcount_64u.hpp"
+
+//#include "Byteswap_16u.hpp"
+//#include "Byteswap_32u.hpp"
+//#include "Byteswap_64u.hpp"
+
+//#include "Add_8u.hpp"
+//#include "Add_16u.hpp"
+//#include "Add_32u.hpp"
+//#include "Add_64u.hpp"
+
+//#include "Sub_8u.hpp"
+//#include "Sub_16u.hpp"
+//#include "Sub_32u.hpp"
+//#include "Sub_64u.hpp"
+
+//#include "Mul_8u.hpp"
+//#include "Mul_16u.hpp"
+//#include "Mul_32u.hpp"
+//#include "Mul_64u.hpp"
+
+//#include "Mulhi_8u.hpp"
+//#include "Mulhi_16u.hpp"
+//#include "Mulhi_32u.hpp"
+//#include "Mulhi_64u.hpp"
+
+//#include "Mulhi_8i.hpp"
+//#include "Mulhi_16i.hpp"
+//#include "Mulhi_32i.hpp"
+//#include "Mulhi_64i.hpp"
+
+//#include "Div_8u.hpp"
+//#include "Div_16u.hpp"
+//#include "Div_32u.hpp"
+//#include "Div_64u.hpp"
 
 //#include "Isqrt_uint8.hpp"
 //#include "Isqrt_uint16.hpp"
@@ -64,17 +138,18 @@
 //#include "Mask_from_bool_64i.hpp"
 
 //TODO: Consider using conversions to 32-bit and 64-bit integers
-//#include "Bit_ceil_8u.hpp"
-//#include "Bit_ceil_16u.hpp"
-//#include "Bit_ceil_32u.hpp"
-//#include "Bit_ceil_64u.hpp"
-
-//#include "Popcount_8u.hpp"
-//#include "Popcount_16u.hpp"
-//#include "Popcount_32u.hpp"
-//#include "Popcount_64u.hpp"
 
 //#include "scalbn_32f.hpp"
+
+//#include "Compress_8u.hpp"
+//#include "Compress_16u.hpp"
+//#include "Compress_32u.hpp"
+//#include "Compress_64u.hpp"
+
+//#include "Exclusive_prefix_sum_8u.hpp"
+//#include "Exclusive_prefix_sum_16u.hpp"
+//#include "Exclusive_prefix_sum_32u.hpp"
+//#include "Exclusive_prefix_sum_64u.hpp"
 
 //#include "Memory_access.hpp"
 

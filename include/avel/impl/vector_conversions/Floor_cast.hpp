@@ -1,0 +1,4 @@
+#ifndef FLOOR_CAST_HPP
+#define FLOOR_CAST_HPP
+
+#endif //FLOOR_CAST_HPP

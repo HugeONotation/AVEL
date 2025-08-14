@@ -950,6 +950,34 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL div_type<vec8x64u> div(vec8x64u x, vec8x64u y) {
+        #if defined(AVEL_AVX512DQ)
+        __m512i a = decay(x);
+        __m512i b = decay(y);
+
+        __m512d a_f64 = _mm512_cvt_roundepu64_pd(decay(x), _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC);
+        __m512d b_f64 = _mm512_cvt_roundepu64_pd(decay(y), _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+        __m512d b_rcp = _mm512_div_round_pd(_mm512_set1_pd(1.0), b_f64, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        __m512i first = _mm512_cvt_roundpd_epu64(_mm512_mul_round_pd(a_f64, b_rcp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC), _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        a = _mm512_sub_epi64(a, _mm512_mullo_epi64(first, b));
+        a_f64 = _mm512_cvt_roundepu64_pd(a, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        __m512i second = _mm512_cvt_roundpd_epu64(_mm512_mul_round_pd(a_f64, b_rcp, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC), _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        __m512i result = _mm512_add_epi64(first, second);
+
+        a = _mm512_sub_epi64(a, _mm512_mullo_epi64(second, b));
+
+        result = _mm512_mask_add_epi64(result, _mm512_cmp_epu64_mask(a, b, _MM_CMPINT_NLT), result, _mm512_set1_epi64(1));
+
+        div_type<vec8x64u> ret;
+        ret.quot = result;
+        ret.rem = _mm512_sub_epi64(decay(x), _mm512_mullo_epi64(result, decay(y)));
+
+        return ret;
+
+        #elif defined(AVEL_AVX512F)
         //TODO: Implement alternative solution
         auto n0 = extract<0>(x);
         auto n1 = extract<1>(x);
@@ -990,6 +1018,7 @@ namespace avel {
         remainder = insert<7>(remainder, n7 % d7);
 
         return {quotient, remainder};
+        #endif
     }
 
     [[nodiscard]]

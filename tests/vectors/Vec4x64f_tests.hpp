@@ -1661,8 +1661,6 @@ namespace avel_tests {
         }
     }
 
-
-    /*
     TEST(Vec4x64f, fmod_edge_cases) {
         EXPECT_TRUE(avel::all(avel::fmod(vec4x64f{+0.0f}, vec4x64f{1.0f}) == vec4x64f{+0.0f}));
         EXPECT_TRUE(avel::all(avel::fmod(vec4x64f{-0.0f}, vec4x64f{1.0f}) == vec4x64f{-0.0f}));
@@ -1699,7 +1697,6 @@ namespace avel_tests {
             EXPECT_TRUE(all(results == vec4x64f{expected}));
         }
     }
-    */
 
     TEST(Vec4x64f, frac_edge_cases) {
         vec4x64f pos_zero{+0.0};
@@ -1795,13 +1792,15 @@ namespace avel_tests {
     }
 
     TEST(Vec4x64f, trunc_edge_cases) {
-        vec4x64f zero{0.0};
+        vec4x64f pos_zero{+0.0};
+        vec4x64f neg_zero{-0.0};
         vec4x64f nan{NAN};
         vec4x64f pos_inf{+INFINITY};
         vec4x64f neg_inf{-INFINITY};
 
+        EXPECT_TRUE(avel::compare_common_bytes(pos_zero, avel::trunc(pos_zero)));
+        EXPECT_TRUE(avel::compare_common_bytes(neg_zero, avel::trunc(neg_zero)));
         EXPECT_TRUE(all(avel::isnan(avel::trunc(nan))));
-        EXPECT_TRUE(all(zero == avel::trunc(zero)));
         EXPECT_TRUE(all(pos_inf == avel::trunc(pos_inf)));
         EXPECT_TRUE(all(neg_inf == avel::trunc(neg_inf)));
     }
@@ -1960,6 +1959,53 @@ namespace avel_tests {
             }
 
             EXPECT_TRUE(all(results0 == vec4x64i{expected0}));
+            EXPECT_TRUE(all(results1 == vec4x64f{expected1}));
+        }
+    }
+
+    TEST(Vec4x64f, modf_edge_cases) {
+        vec4x64f whole0;
+        vec4x64f sig0 = avel::modf(vec4x64f{0.0f}, &whole0);
+        EXPECT_TRUE(all(whole0 == vec4x64f{0.0f}));
+        EXPECT_TRUE(all(sig0 == vec4x64f{0.0f}));
+
+        vec4x64f whole1;
+        vec4x64f frac1 = avel::modf(vec4x64f{-0.0f}, &whole1);
+        EXPECT_TRUE(avel::compare_common_bytes(whole1, vec4x64f{-0.0f}));
+        EXPECT_TRUE(avel::compare_common_bytes(frac1, vec4x64f{-0.0f}));
+
+        vec4x64f whole2;
+        vec4x64f frac2 = avel::modf(vec4x64f{NAN}, &whole2);
+        EXPECT_TRUE(avel::all(avel::isnan(whole2)));
+        EXPECT_TRUE(avel::all(avel::isnan(frac2)));
+
+        vec4x64f whole3;
+        vec4x64f frac3 = avel::modf(vec4x64f{+INFINITY}, &whole3);
+        EXPECT_TRUE(avel::all(whole3 == vec4x64f{+INFINITY}));
+        EXPECT_TRUE(avel::compare_common_bytes(frac3, vec4x64f{+0.0f}));
+
+        vec4x64f whole4;
+        vec4x64f frac4 = avel::modf(vec4x64f{-INFINITY}, &whole4);
+        EXPECT_TRUE(avel::all(whole4 == vec4x64f{-INFINITY}));
+        EXPECT_TRUE(avel::compare_common_bytes(frac4, vec4x64f{-0.0f}));
+    }
+
+    TEST(Vec4x64f, modf_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs = random_array<arr4x64f>();
+
+            vec4x64f v{inputs};
+            vec4x64f results0{};
+
+            auto results1 = avel::modf(v, &results0);
+
+            arr4x64f expected0{};
+            arr4x64f expected1{};
+            for (std::size_t j = 0; j < inputs.size(); ++j) {
+                expected1[j] = avel::modf(inputs[j], &expected0[j]);
+            }
+
+            EXPECT_TRUE(all(results0 == vec4x64f{expected0}));
             EXPECT_TRUE(all(results1 == vec4x64f{expected1}));
         }
     }

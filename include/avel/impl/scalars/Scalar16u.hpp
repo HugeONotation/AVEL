@@ -9,6 +9,8 @@ namespace avel {
 
     std::uint16_t countl_one(std::uint16_t x);
 
+    std::uint16_t rotl(std::uint16_t x, long long s);
+
     //=====================================================
     // Bit manipulation
     //=====================================================
@@ -226,8 +228,9 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::uint16_t bit_ceil(std::uint16_t x) {
         #if defined(AVEL_LZCNT) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
-        auto sh = (32 - _lzcnt_u32(x - 1));
-        auto result = 1 << sh;
+        //TODO: Optimize further
+        auto sh = (32u - _lzcnt_u32(x - 1u));
+        auto result = (x <= 0x8000u) << (sh % 16);
         return result;
 
         #elif defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))

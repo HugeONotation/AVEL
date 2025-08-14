@@ -338,7 +338,7 @@ void clamp_vector(const std::vector<std::uint32_t>& values) {
 }
 ```
 
-### Use of Reciprocal Classes
+### Use of Denominator Classes
 ```c++
 #include AVEL_AUTO_DETECT
 #include <avel/Vectors.hpp>
@@ -363,7 +363,7 @@ int main() {
 
 ```
 
-### Use of Vector Reciprocal Classes
+### Use of Vector Denominator Classes
 ```c++
 #include AVEL_AUTODETECT
 
@@ -401,18 +401,3 @@ int main() {
 
 
 ```
-
-## Compiler Support
-The library's tests have been run and passed on:
-* x86
-  * GCC 9.5.0, 10.4.0, 11.3.0, and 12.1.0
-  * Clang 11.1.0-6,  12.0.1, 13.0.1, 14.0.0, 15.0.7
-  * ICX 2023.2.0
-* ARM
-  * GCC 9.3.0-22, 10.2.1-6
-* Clang 9.0.10-16.1, 11.0.1-2, 13.0.1-6
-* MSVC 19.37.32822
-
-Presumably newer/intermediate versions of these compilers will also work 
-however it has not been tested which are the oldest versions on which this 
-library will function

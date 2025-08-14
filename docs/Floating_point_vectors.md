@@ -361,6 +361,14 @@ vector aligned_load(const scalar* p, std::uint32_t n)
 * produces `v` if `v` is `+INFINITY` or `-INFINITY`
 * produces `NAN` if `v` is `NAN`
 
+`vector modf(vector num, vector* iptr)`
+* for each lane, returns the fractional part of `v`
+* for each lane, populates `*iptr` with the whole part of `v`
+* produces `+0.0` if `v` is `+0.0`
+* produces `-0.0` if `v` is `-0.0`
+* produces `+0.0` if `v` is `+INFINITY`
+* produces `-0.0` if `v` is `-INFINITY`
+
 `vector scalbn(vector v, ivector num)`
 * for each lane, returns `v` times `FLT_RADIX` raised to the power of `num`
 * produces `v` if `v` is `+0.0` or `-0.0`

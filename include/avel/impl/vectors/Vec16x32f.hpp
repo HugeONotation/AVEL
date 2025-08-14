@@ -20,7 +20,11 @@ namespace avel {
     AVEL_FINL mask16x32f isunordered(vec16x32f, vec16x32f);
     AVEL_FINL mask16x32f signbit(vec16x32f x);
     AVEL_FINL mask16x32f isnan(vec16x32f v);
+    AVEL_FINL mask16x32f isinf(vec16x32f v);
     AVEL_FINL vec16x32f copysign(vec16x32f mag, vec16x32f sign);
+    AVEL_FINL vec16x32f ldexp(vec16x32f arg, vec16x32i exp);
+    AVEL_FINL vec16x32f frexp(vec16x32f v, vec16x32i* exp);
+    AVEL_FINL vec16x32i ilogb(vec16x32f x);
 
 
 
@@ -701,6 +705,37 @@ namespace avel {
         return v - avel::trunc(v);
     }
 
+    [[nodiscard]]
+    AVEL_FINL vec16x32f fmod(vec16x32f x, vec16x32f y) {
+        mask16x32f result_sign = avel::signbit(x);
+
+        mask16x32f is_result_nan =
+            avel::isnan(x) |
+            avel::isnan(y) |
+            avel::isinf(x) |
+            y == vec16x32f{0.0f};
+
+        x = avel::abs(x);
+        y = avel::abs(y);
+
+        //TODO: Use AVX-512 vgetmant** instruction
+        vec16x32i dummy;
+        vec16x32f t = avel::ldexp(avel::frexp(y, &dummy), avel::ilogb(x) + vec16x32i{1});
+
+        // Core loop
+        mask16x32f m = (x >= y) & !is_result_nan;
+        while (avel::any(m)) {
+            x -= avel::keep((x >= t) & m, t);
+            t *= vec16x32f{0.5f};
+            m &= (x >= y);
+        }
+
+        x = avel::negate(result_sign, x);
+        x = avel::blend(is_result_nan, vec16x32f{NAN}, x);
+
+        return x;
+    }
+
     //=====================================================
     // Power functions
     //=====================================================
@@ -711,7 +746,7 @@ namespace avel {
     }
 
     //=====================================================
-    // Nearest Integer Floating-point operators
+    // Nearest Integer Operations
     //=====================================================
 
     [[nodiscard]]
@@ -783,6 +818,39 @@ namespace avel {
         ret = _mm512_mask_blend_ps(is_infinity, ret, decay(v));
         return vec16x32f{ret};
 
+        #endif
+    }
+
+
+    [[nodiscard]]
+    AVEL_FINL vec16x32f modf(vec16x32f num, vec16x32f* iptr) {
+        #if defined(AVEL_AVX512DQ)
+        __m512 num_reg = decay(num);
+
+        __m512 x = _mm512_roundscale_ps(num_reg, _MM_FROUND_TO_ZERO);
+        __m512 y = _mm512_reduce_ps(num_reg, _MM_FROUND_TO_ZERO | (0 << 4));
+
+        *iptr = vec16x32f{x};
+        return avel::copysign(vec16x32f{y}, num);
+
+        #elif defined(AVEL_AVX512F)
+        __m512 num_reg = decay(num);
+        __m512 whole_reg = _mm512_roundscale_ps(num_reg, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        __m512 abs_num = _mm512_abs_ps(num_reg);
+
+        __mmask16 is_inf = _mm512_cmpneq_epi32_mask(_mm512_castps_si512(abs_num), _mm512_set1_epi32(0x7f800000));
+        __m512 diff = _mm512_maskz_sub_ps(is_inf, num_reg, whole_reg);
+
+        //__m512 sign_bit = _mm512_and_ps(sign_bit_mask, num_reg);
+        //__m512 magnitude = _mm512_andnot_ps(sign_bit_mask, diff);
+        //__m512 frac = _mm512_or_ps(sign_bit, magnitude);
+
+        vec16x32f frac = copysign(vec16x32f{diff}, num);
+
+        *iptr = whole_reg;
+
+        return frac;
         #endif
     }
 

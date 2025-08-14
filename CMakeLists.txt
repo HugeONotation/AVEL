@@ -115,8 +115,8 @@ endif()
 
 
 # AVEL support
-#option(AVEL_BUILD_SUPPORT ON)
+option(AVEL_BUILD_SUPPORT OFF)
 
-#if (AVEL_BUILD_SUPPORT)
-#    add_subdirectory(support)
-#endif()
+if (AVEL_BUILD_SUPPORT)
+    add_subdirectory(support)
+endif()

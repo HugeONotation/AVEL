@@ -3,12 +3,12 @@
 import struct
 from mpmath import mp
 
-N = 6
+N = 12
 """
 Number of terms in polynomial approximation
 """
 
-A = mp.mpf(0.0)
+A = mp.mpf(0.0004436330054886639118194580078125)
 """
 Beginning of range over which to approximate
 """
@@ -32,7 +32,7 @@ def f(x):
     :return:
     """
 
-    return mp.sin(x) / x
+    return (mp.cos(x) - mp.mpf(1)) / x
 
 
 def T(i, x):
@@ -160,7 +160,7 @@ def main():
         for j in range(0, len(tmp)):
             u_polynomial_coefficients[j] += tmp[j] * chebyshev_coefficients[i]
 
-    mp.dps = 16
+    mp.dps = 32
 
     print("Chebyshev polynomial coefficients:")
     for (x, i) in zip(chebyshev_coefficients, range(0, N)):
