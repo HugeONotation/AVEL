@@ -102,8 +102,49 @@ namespace avel {
     //=====================================================
 
     template<class V>
+    [[nodiscard]]
     AVEL_FINL typename V::primitive decay(V v) {
         return static_cast<typename V::primitive>(v);
+    }
+
+    //=====================================================
+    // Vector Manipulation Functions
+    //=====================================================
+
+    template<class V0, class V1 = V0>
+    [[nodiscard]]
+    AVEL_FINL V0 widen_vector(V1 v) {
+        static_assert(is_vector<V0>::value, "Input type must be an AVEL vector type");
+        static_assert(is_vector<V1>::value, "Input type must be an AVEL vector type");
+        static_assert(V0::width >= V1::width, "Target vector types must have at least as many lanes as input type");
+
+        V0 ret;
+        std::memcpy(&ret, &v, sizeof(v));
+        return ret;
+    }
+
+    template<class V>
+    [[nodiscard]]
+    AVEL_FINL V widen_vector(V v) {
+        return v;
+    }
+
+    template<class M0, class M1 = M0>
+    [[nodiscard]]
+    AVEL_FINL M0 widen_mask(M1 m) {
+        static_assert(is_vector_mask<M0>::value, "Input type must be an AVEL vector type");
+        static_assert(is_vector_mask<M1>::value, "Input type must be an AVEL vector type");
+        static_assert(M0::width >= M1::width, "Target vector types must have at least as many lanes as input type");
+
+        M0 ret;
+        std::memcpy(&ret, &m, sizeof(m));
+        return ret;
+    }
+
+    template<class M>
+    [[nodiscard]]
+    AVEL_FINL M widen_mask(M m) {
+        return m;
     }
 
     //=====================================================
@@ -119,6 +160,30 @@ namespace avel {
     template<class V0, class V1 = V0, class = typename std::enable_if<!std::is_same<V0, V1>::value>::type>
     [[nodiscard]]
     AVEL_FINL std::array<V0, V1::width / V0::width + bool(V1::width % V0::width)> convert(V1 v);
+
+    /*
+    template<
+        class V0,
+        class V1 = V0,
+        std::uint32_t N = 0,
+        class = typename std::enable_if<is_vector<V0>::value>::type,
+        class = typename std::enable_if<is_vector<V1>::value>::type,
+        class = typename std::enable_if<std::is_same<typename V0::scalar, typename V1::scalar>::value>::type,
+        class = typename std::enable_if<V0::width >= V1::width>::type
+    >
+    [[nodiscard]]
+    AVEL_FINL V0 zero_extend(V1);
+
+    template<
+        class V,
+        std::uint32_t N = 0,
+        class = typename std::enable_if<is_vector<V>::value>::type
+    >
+    [[nodiscard]]
+    AVEL_FINL V zero_extend(V v) {
+        return v;
+    }
+    */
 
     /*
     template<
@@ -165,7 +230,6 @@ namespace avel {
 /*
 #include "Widen.hpp"
 
-#include "Zero_extend.hpp"
 
     template<
         class V0,
@@ -412,7 +476,7 @@ namespace avel {
     #include "Vec32x16i.hpp"
 #endif
 
-
+//#include "../vector_conversions/Vector_conversions.hpp"
 
 /*
  * Should these specializations be made?

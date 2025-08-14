@@ -178,6 +178,7 @@ add_executable(AVEL_TESTS
     vectors/Vector_tests.cpp
 
     Denominator_vector_tests.hpp
+    #vector_conversions/Vector_zero_extension_tests.hpp
 )
 
 target_compile_definitions(AVEL INTERFACE ${AVEL_REQUESTED_TEST_GROUPS})
@@ -209,7 +210,7 @@ else()
     set(AVEL_MSVC_SPECIFIC_FLAGS "")
 endif()
 
-target_compile_options(AVEL_TESTS PRIVATE ${AVEL_ROUNDING_FLAG} ${AVEL_MSVC_SPECIFIC_FLAGS})
+target_compile_options(AVEL_TESTS PRIVATE ${AVEL_ROUNDING_FLAG} ${AVEL_MSVC_SPECIFIC_FLAGS} "")
 target_link_options(AVEL_TESTS PRIVATE "")
 
 target_include_directories(AVEL_TESTS PRIVATE ./include/)

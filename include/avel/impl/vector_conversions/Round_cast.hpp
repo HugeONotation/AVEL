@@ -1,0 +1,4 @@
+#ifndef ROUND_CAST_HPP
+#define ROUND_CAST_HPP
+
+#endif //ROUND_CAST_HPP

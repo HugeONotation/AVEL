@@ -298,6 +298,7 @@ namespace avel_tests {
     TEST(Scalar32u, Bit_ceil_edge_cases) {
         EXPECT_EQ(1, bit_ceil(std::uint32_t{0}));
         EXPECT_EQ(1, bit_ceil(std::uint32_t{1}));
+        EXPECT_EQ(0, bit_ceil(static_cast<std::uint32_t>(-1)));
     }
 
     TEST(Scalar32u, Bit_ceil_powers_of_two) {

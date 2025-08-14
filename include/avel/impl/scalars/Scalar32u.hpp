@@ -13,6 +13,8 @@ namespace avel {
 
     std::uint32_t max(std::uint32_t a, std::uint32_t b);
 
+    std::uint32_t rotl(std::uint32_t x, long long s);
+
     //=====================================================
     // Bit manipulation
     //=====================================================
@@ -249,8 +251,9 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::uint32_t bit_ceil(std::uint32_t x) {
         #if defined(AVEL_LZCNT) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
-        auto sh = (64 - _lzcnt_u64(std::uint64_t(x) - 1));
-        auto result = std::uint64_t(1) << sh;
+        //TODO: Optimize further
+        auto sh = (64u - _lzcnt_u64(std::uint64_t(x) - 1u));
+        auto result = (x <= 0x80000000u) << (sh % 32);
         return result;
 
         #elif defined(AVEL_X86) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))

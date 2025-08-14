@@ -14,10 +14,13 @@ namespace avel {
 
     AVEL_FINL vec8x32f trunc(vec8x32f v);
     AVEL_FINL vec8x32f fmod(vec8x32f a, vec8x32f b);
+    AVEL_FINL mask8x32f signbit(vec8x32f x);
     AVEL_FINL mask8x32f isnan(vec8x32f v);
     AVEL_FINL mask8x32f isinf(vec8x32f v);
-    AVEL_FINL vec8x32i ilogb(vec8x32f x);
     AVEL_FINL vec8x32f copysign(vec8x32f mag, vec8x32f sign);
+    AVEL_FINL vec8x32f ldexp(vec8x32f arg, vec8x32i exp);
+    AVEL_FINL vec8x32f frexp(vec8x32f v, vec8x32i* exp);
+    AVEL_FINL vec8x32i ilogb(vec8x32f x);
 
 
 
@@ -897,6 +900,37 @@ namespace avel {
         return v - avel::trunc(v);
     }
 
+    [[nodiscard]]
+    AVEL_FINL vec8x32f fmod(vec8x32f x, vec8x32f y) {
+        mask8x32f result_sign = avel::signbit(x);
+
+        mask8x32f is_result_nan =
+            avel::isnan(x) |
+            avel::isnan(y) |
+            avel::isinf(x) |
+            y == vec8x32f{0.0f};
+
+        x = avel::abs(x);
+        y = avel::abs(y);
+
+        //TODO: Use AVX-512 vgetmant** instruction
+        vec8x32i dummy;
+        vec8x32f t = avel::ldexp(avel::frexp(y, &dummy), avel::ilogb(x) + vec8x32i{1});
+
+        // Core loop
+        mask8x32f m = (x >= y) & !is_result_nan;
+        while (avel::any(m)) {
+            x -= avel::keep((x >= t) & m, t);
+            t *= vec8x32f{0.5f};
+            m &= (x >= y);
+        }
+
+        x = avel::negate(result_sign, x);
+        x = avel::blend(is_result_nan, vec8x32f{NAN}, x);
+
+        return x;
+    }
+
     //=====================================================
     // Power functions
     //=====================================================
@@ -907,7 +941,7 @@ namespace avel {
     }
 
     //=====================================================
-    // Nearest Integer Floating-point operators
+    // Nearest Integer Operations
     //=====================================================
 
     [[nodiscard]]
@@ -1002,6 +1036,38 @@ namespace avel {
         auto ret = _mm256_or_ps(cleared_exponent, new_exponent);
         return blend(mask8x32f{_mm256_castsi256_ps(is_output_self)}, v, vec8x32f{ret});
 
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL vec8x32f modf(vec8x32f num, vec8x32f* iptr) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)
+        __m256 num_reg = decay(num);
+
+        __m256 x = _mm256_roundscale_ps(num_reg, _MM_FROUND_TO_ZERO);
+        __m256 y = _mm256_reduce_ps(num_reg, _MM_FROUND_TO_ZERO | (0 << 4));
+
+        *iptr = vec8x32f{x};
+        return avel::copysign(vec8x32f{y}, num);
+
+        #elif defined(AVEL_AVX2)
+        __m256 num_reg = decay(num);
+        __m256 whole_reg = _mm256_round_ps(num_reg, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        __m256 sign_bit_mask = _mm256_castsi256_ps(_mm256_set1_epi32(0x80000000));
+        __m256 abs_num = _mm256_andnot_ps(sign_bit_mask, num_reg);
+
+        __m256 is_inf = _mm256_castsi256_ps(_mm256_cmpeq_epi32(_mm256_castps_si256(abs_num), _mm256_set1_epi32(0x7f800000)));
+        __m256 diff = _mm256_sub_ps(num_reg, whole_reg);
+        __m256 masked_diff = _mm256_andnot_ps(is_inf, diff);
+
+        __m256 sign_bit = _mm256_and_ps(sign_bit_mask, num_reg);
+        __m256 magnitude = _mm256_andnot_ps(sign_bit_mask, masked_diff);
+        __m256 frac = _mm256_or_ps(sign_bit, magnitude);
+
+        *iptr = whole_reg;
+
+        return vec8x32f{frac};
         #endif
     }
 

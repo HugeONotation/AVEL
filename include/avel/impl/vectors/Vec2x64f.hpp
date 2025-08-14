@@ -25,6 +25,9 @@ namespace avel {
     AVEL_FINL mask2x64f isnan(vec2x64f v);
     AVEL_FINL mask2x64f isinf(vec2x64f v);
     AVEL_FINL vec2x64f copysign(vec2x64f mag, vec2x64f sign);
+    AVEL_FINL vec2x64f ldexp(vec2x64f arg, vec2x64i exp);
+    AVEL_FINL vec2x64f frexp(vec2x64f v, vec2x64i* exp);
+    AVEL_FINL vec2x64i ilogb(vec2x64f x);
 
 
 
@@ -334,7 +337,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        //TODO: Implement
+        return vgetq_lane_u64(decay(m), N);
 
         #endif
     }
@@ -362,7 +365,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        //TODO: Implement
+        return mask2x64f{vsetq_lane_u64(b ? -1 : 0, decay(m), N)};
 
         #endif
     }
@@ -1285,6 +1288,37 @@ namespace avel {
         return v - avel::trunc(v);
     }
 
+    [[nodiscard]]
+    AVEL_FINL vec2x64f fmod(vec2x64f x, vec2x64f y) {
+        mask2x64f result_sign = avel::signbit(x);
+
+        mask2x64f is_result_nan =
+            avel::isnan(x) |
+            avel::isnan(y) |
+            avel::isinf(x) |
+            y == vec2x64f{0.0f};
+
+        x = avel::abs(x);
+        y = avel::abs(y);
+
+        //TODO: Use AVX-512 vgetmant** instruction
+        vec2x64i dummy;
+        vec2x64f t = avel::ldexp(avel::frexp(y, &dummy), avel::ilogb(x) + vec2x64i{1});
+
+        // Core loop
+        mask2x64f m = (x >= y) & !is_result_nan;
+        while (avel::any(m)) {
+            x -= avel::keep((x >= t) & m, t);
+            t *= vec2x64f{0.5f};
+            m &= (x >= y);
+        }
+
+        x = avel::negate(result_sign, x);
+        x = avel::blend(is_result_nan, vec2x64f{NAN}, x);
+
+        return x;
+    }
+
     //=====================================================
     // Power functions
     //=====================================================
@@ -1301,7 +1335,7 @@ namespace avel {
     }
 
     //=====================================================
-    // Nearest Integer floating-point operators
+    // Nearest Integer Operations
     //=====================================================
 
     [[nodiscard]]
@@ -1376,21 +1410,37 @@ namespace avel {
         return vec2x64f{_mm_round_pd(decay(v), _MM_FROUND_TO_ZERO |_MM_FROUND_NO_EXC)};
 
         #elif defined(AVEL_SSE2)
-        auto abs_v = abs(v);
+        auto v_reg = decay(v);
 
-        auto is_integral = _mm_cmple_pd(_mm_set1_pd(4503599627370496.0), decay(abs_v));
-        auto is_nan = _mm_cmpunord_pd(decay(abs_v), decay(abs_v));
-        auto is_output_self = _mm_or_pd(is_integral, is_nan);
+        __m128d sign_bit_mask = _mm_castsi128_pd(_mm_set1_epi64x(0x80000000'00000000ll));
+        __m128d abs_v = _mm_andnot_pd(sign_bit_mask, v_reg);
 
+        // Check if rounding is necessary
+        __m128d threshold = _mm_set1_pd(4503599627370496.0);
+
+        auto is_integral = _mm_cmple_pd(threshold, abs_v);
+        auto is_nan = _mm_cmpunord_pd(abs_v, abs_v);
+        auto is_rounding_unnecessary = _mm_or_pd(is_integral, is_nan);
+
+        // Compute truncated results
         auto converted0 = _mm_cvttsd_si64(decay(v));
-        auto converted1 = _mm_cvttsd_si64(_mm_shuffle_pd(decay(v), decay(v), 0x3));
+        auto converted1 = _mm_cvttsd_si64(_mm_shuffle_pd(v_reg, v_reg, 0x3));
 
         auto reconstructed0 = _mm_cvtsi64_sd(_mm_undefined_pd(), converted0);
         auto reconstructed1 = _mm_cvtsi64_sd(_mm_undefined_pd(), converted1);
 
         auto reconstructed = _mm_unpacklo_pd(reconstructed0, reconstructed1);
 
-        return blend(mask2x64f{is_output_self}, v, vec2x64f{reconstructed});
+        // Select between rounded result and the original value
+        __m128d result = _mm_or_pd(
+            _mm_andnot_pd(is_rounding_unnecessary, reconstructed),
+            _mm_and_pd(is_rounding_unnecessary, v_reg)
+            );
+
+        // Copy sign from input to result
+        __m128d signed_result = _mm_or_pd(result, _mm_and_pd(v_reg, sign_bit_mask));
+
+        return vec2x64f{signed_result};
 
         #endif
 
@@ -1575,6 +1625,58 @@ namespace avel {
         auto ret = blend(mask2x64i{vreinterpretq_u64_s64(is_output_self)}, vec2x64i{v_bits}, vec2x64i{remapped_significand});
 
         return vec2x64f{vreinterpretq_f64_s64(decay(ret))};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL vec2x64f modf(vec2x64f num, vec2x64f* iptr) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)
+        __m128d num_reg = decay(num);
+
+        __m128d x = _mm_roundscale_pd(num_reg, _MM_FROUND_TO_ZERO);
+        __m128d y = _mm_reduce_pd(num_reg, _MM_FROUND_TO_ZERO | (0 << 4));
+
+        *iptr = vec2x64f{x};
+        return avel::copysign(vec2x64f{y}, num);
+
+        #elif defined(AVEL_SSE4_1)
+        __m128d num_reg = decay(num);
+        __m128d whole_reg = _mm_round_pd(num_reg, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        __m128d sign_bit_mask = _mm_castsi128_pd(_mm_set1_epi64x(0x80000000'00000000ll));
+        __m128d abs_num = _mm_andnot_pd(sign_bit_mask, num_reg);
+
+        __m128d is_inf = _mm_castsi128_pd(_mm_cmpeq_epi64(_mm_castpd_si128(abs_num), _mm_set1_epi64x(0x7ff0000000000000ll)));
+        __m128d diff = _mm_sub_pd(num_reg, whole_reg);
+        __m128d masked_diff = _mm_andnot_pd(is_inf, diff);
+
+        __m128d sign_bit = _mm_and_pd(sign_bit_mask, num_reg);
+        __m128d magnitude = _mm_andnot_pd(sign_bit_mask, masked_diff);
+        __m128d frac = _mm_or_pd(sign_bit, magnitude);
+
+        *iptr = whole_reg;
+
+        return vec2x64f{frac};
+
+        #elif defined(AVEL_SSE2)
+        __m128d num_reg = decay(num);
+        __m128d whole_reg = decay(trunc(num)); //TODO: Consider inlining this to enable further optimization
+
+        __m128d sign_bit_mask = _mm_castsi128_pd(_mm_set1_epi64x(0x80000000'00000000ll));
+        __m128d abs_num = _mm_andnot_pd(sign_bit_mask, num_reg);
+
+        __m128d is_inf = _mm_cmpeq_pd(abs_num, _mm_set1_pd(INFINITY));
+        __m128d diff = _mm_sub_pd(num_reg, whole_reg);
+        __m128d masked_diff = _mm_andnot_pd(is_inf, diff);
+
+        __m128d sign_bit = _mm_and_pd(sign_bit_mask, num_reg);
+        __m128d magnitude = _mm_andnot_pd(sign_bit_mask, masked_diff);
+        __m128d frac = _mm_or_pd(sign_bit, magnitude);
+
+        *iptr = whole_reg;
+
+        return vec2x64f{frac};
 
         #endif
     }

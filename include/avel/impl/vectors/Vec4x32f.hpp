@@ -26,6 +26,10 @@ namespace avel {
     AVEL_FINL mask4x32f isnan(vec4x32f v);
     AVEL_FINL mask4x32f isinf(vec4x32f v);
     AVEL_FINL vec4x32f copysign(vec4x32f mag, vec4x32f sign);
+    AVEL_FINL vec4x32f ldexp(vec4x32f arg, vec4x32i exp);
+    AVEL_FINL vec4x32f frexp(vec4x32f v, vec4x32i* exp);
+    AVEL_FINL vec4x32i ilogb(vec4x32f x);
+    AVEL_FINL vec4x32f copysign(vec4x32f mag, vec4x32f sgn);
 
 
 
@@ -359,7 +363,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        //TODO: Implement
+        return vgetq_lane_u32(decay(m), N);
 
         #endif
     }
@@ -386,7 +390,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        //TODO: Implement
+        return mask4x32f{vsetq_lane_u32(b ? -1 : 0, decay(m), N)};
 
         #endif
     }
@@ -805,6 +809,7 @@ namespace avel {
 
         #if defined(AVEL_NEON)
         return vec4x32f{vsetq_lane_f32(x, decay(v), N)};
+
         #endif
     }
 
@@ -1364,6 +1369,37 @@ namespace avel {
         return v - avel::trunc(v);
     }
 
+    [[nodiscard]]
+    AVEL_FINL vec4x32f fmod(vec4x32f x, vec4x32f y) {
+        mask4x32f result_sign = avel::signbit(x);
+
+        mask4x32f is_result_nan =
+            avel::isnan(x) |
+            avel::isnan(y) |
+            avel::isinf(x) |
+            y == vec4x32f{0.0f};
+
+        x = avel::abs(x);
+        y = avel::abs(y);
+
+        //TODO: Use AVX-512 vgetmant** instruction
+        vec4x32i dummy;
+        vec4x32f t = avel::ldexp(avel::frexp(y, &dummy), avel::ilogb(x) + vec4x32i{1});
+
+        // Core loop
+        mask4x32f m = (x >= y) & !is_result_nan;
+        while (avel::any(m)) {
+            x -= avel::keep((x >= t) & m, t);
+            t *= vec4x32f{0.5f};
+            m &= (x >= y);
+        }
+
+        x = avel::negate(result_sign, x);
+        x = avel::blend(is_result_nan, vec4x32f{NAN}, x);
+
+        return x;
+    }
+
     //=====================================================
     // Power functions
     //=====================================================
@@ -1383,7 +1419,7 @@ namespace avel {
     }
 
     //=====================================================
-    // Nearest integer function
+    // Nearest Integer Operations
     //=====================================================
 
     [[nodiscard]]
@@ -1394,6 +1430,7 @@ namespace avel {
         #elif defined(AVEL_SSE2)
         auto abs_v = abs(v);
 
+        //TODO: Optimize checks
         auto is_integral = _mm_cmple_ps(_mm_set1_ps(8388608.0f), decay(abs_v));
         auto is_nan = _mm_cmpunord_ps(decay(abs_v), decay(abs_v));
         auto is_output_self = _mm_or_ps(is_integral, is_nan);
@@ -1436,6 +1473,7 @@ namespace avel {
         #elif defined(AVEL_SSE2)
         auto abs_v = abs(v);
 
+        //TODO: Optimize checks
         auto is_integral = _mm_cmple_ps(_mm_set1_ps(8388608.0f), decay(abs_v));
         auto is_nan = _mm_cmpunord_ps(decay(abs_v), decay(abs_v));
         auto is_output_self = _mm_or_ps(is_integral, is_nan);
@@ -1465,19 +1503,38 @@ namespace avel {
         return vec4x32f{_mm_round_ps(decay(v), _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC)};
 
         #elif defined(AVEL_SSE2)
-        auto abs_v = abs(v);
+        __m128 v_reg = decay(v);
 
-        // TODO: Could potentially merge these checks together
-        auto is_integral = _mm_cmple_ps(_mm_set1_ps(8388608.0f), decay(abs_v));
-        auto is_nan = _mm_cmpunord_ps(decay(abs_v), decay(abs_v));
-        auto is_output_self = _mm_or_ps(is_integral, is_nan);
+        __m128 sign_bit_mask = _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
+        __m128 abs_v = _mm_andnot_ps(sign_bit_mask, v_reg);
 
-        auto converted = _mm_cvttps_epi32(decay(v));
-        auto reconstructed = _mm_cvtepi32_ps(converted);
+        // Check if rounding is necessary
+        __m128i threshold = _mm_set1_epi32(0x4affffff);
+        __m128 is_rounding_unnecessary = _mm_castsi128_ps(
+            _mm_cmpgt_epi32(
+                _mm_castps_si128(abs_v),
+                threshold
+            )
+        );
 
-        return blend(mask4x32f{is_output_self}, v, vec4x32f{reconstructed});
+        // Compute truncated result
+        __m128i converted = _mm_cvttps_epi32(abs_v);
+        __m128 reconstructed = _mm_cvtepi32_ps(converted);
+
+        // Select between rounded result and the original value
+        __m128 result = _mm_or_ps(
+            _mm_andnot_ps(is_rounding_unnecessary, reconstructed),
+            _mm_and_ps(is_rounding_unnecessary, v_reg)
+        );
+
+        // Copy sign from input to result
+        __m128 signed_result = _mm_or_ps(result, _mm_and_ps(v_reg, sign_bit_mask));
+
+        return vec4x32f{signed_result};
 
         #endif
+
+
 
         #if defined(AVEL_NEON) && (defined(AVEL_AARCH32) || defined(AVEL_AARCH64))
         return vec4x32f{vrndq_f32(decay(v))};
@@ -1548,6 +1605,7 @@ namespace avel {
             case _MM_ROUND_NEAREST: {
                 auto abs_v = abs(v);
 
+                //TODO: Optimize checks
                 auto is_integral = _mm_cmple_ps(_mm_set1_ps(8388608.0f), decay(abs_v));
                 auto is_nan = _mm_cmpunord_ps(decay(abs_v), decay(abs_v));
                 auto is_output_self = _mm_or_ps(is_integral, is_nan);
@@ -1727,6 +1785,69 @@ namespace avel {
     }
 
     [[nodiscard]]
+    AVEL_FINL vec4x32f modf(vec4x32f num, vec4x32f* iptr) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)
+        __m128 num_reg = decay(num);
+
+        __m128 x = _mm_roundscale_ps(num_reg, _MM_FROUND_TO_ZERO);
+        __m128 y = _mm_reduce_ps(num_reg, _MM_FROUND_TO_ZERO | (0 << 4));
+
+        *iptr = vec4x32f{x};
+        return avel::copysign(vec4x32f{y}, num);
+
+        #elif defined(AVEL_SSE4_1)
+        __m128 num_reg = decay(num);
+        __m128 whole_reg = _mm_round_ps(num_reg, _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC);
+
+        __m128 sign_bit_mask = _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
+        __m128 abs_num = _mm_andnot_ps(sign_bit_mask, num_reg);
+
+        __m128 is_inf = _mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(abs_num), _mm_set1_epi32(0x7f800000)));
+        __m128 diff = _mm_sub_ps(num_reg, whole_reg);
+        __m128 masked_diff = _mm_andnot_ps(is_inf, diff);
+
+        __m128 sign_bit = _mm_and_ps(sign_bit_mask, num_reg);
+        __m128 magnitude = _mm_andnot_ps(sign_bit_mask, masked_diff);
+        __m128 frac = _mm_or_ps(sign_bit, magnitude);
+
+        *iptr = whole_reg;
+
+        return vec4x32f{frac};
+
+        #elif defined(AVEL_SSE2)
+        __m128 num_reg = decay(num);
+
+        // Check if number has no fractional bits
+        __m128i sign_bit = _mm_set1_epi32(0x80000000);
+        __m128i abs_num = _mm_andnot_si128(sign_bit, _mm_castps_si128(num_reg));
+        __m128i threshold = _mm_set1_epi32(0x4affffff);
+        __m128i has_no_fractional_bits = _mm_cmpgt_epi32(abs_num, threshold);
+        __m128 m = _mm_castsi128_ps(has_no_fractional_bits);
+
+        // Compute truncated via integer conversion
+        __m128i converted = _mm_cvttps_epi32(num_reg);
+        __m128 reconstructed = _mm_cvtepi32_ps(converted);
+
+        // Use mask to select between truncated and original
+        __m128 whole = _mm_or_ps(
+            _mm_andnot_ps(m, reconstructed),
+            _mm_and_ps(m, num_reg)
+        );
+
+        __m128 is_infinite_mask = _mm_castsi128_ps(_mm_cmpeq_epi32(abs_num, _mm_set1_epi32(0x7f800000)));
+
+        __m128 fractional = _mm_andnot_ps(is_infinite_mask, _mm_sub_ps(num_reg, whole));
+
+        // Necessary for negative zeros
+        *iptr = avel::copysign(vec4x32f{whole}, num);
+
+        // Necessary for negative infinities
+        return avel::copysign(vec4x32f{fractional}, num);
+
+        #endif
+    }
+
+    [[nodiscard]]
     AVEL_FINL vec4x32f ldexp(vec4x32f arg, vec4x32i exp) {
         #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
         return vec4x32f{_mm_scalef_ps(decay(arg), _mm_cvtepi32_ps(decay(exp)))};
@@ -1774,6 +1895,8 @@ namespace avel {
         return vec4x32f{ret};
 
         #endif
+
+
 
         #if defined(AVEL_NEON)
         //TODO: Optimize
@@ -2089,6 +2212,7 @@ namespace avel {
         return mask4x32f{_mm_fpclass_ps_mask(decay(v), 0x08 | 0x10)};
 
         #elif defined(AVEL_SSE2)
+        //TODO: Consider using integer facilities instead
         return avel::abs(v) == vec4x32f{INFINITY};
 
         #endif

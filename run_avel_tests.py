@@ -291,7 +291,6 @@ def run_test_case(compiler_path, build_dir_name, feature_assignments, test_group
         'cmake ' \
         '-S"./" ' \
         '-B{} ' \
-        '-G"CodeBlocks - Unix Makefiles" ' \
         '-DCMAKE_CXX_COMPILER={} ' \
         '-DAVEL_BUILD_TESTS:BOOL=ON{} ' \
         '-DCMAKE_CXX_FLAGS="{}"'
@@ -671,6 +670,7 @@ def main():
 
             exit(1)
 
+    shutil.rmtree('./test_build_dirs')
     print('\nTesting script: All tests passed')
 
 

@@ -246,6 +246,12 @@ namespace avel {
     }
 
     [[nodiscard]]
+    AVEL_FINL double modf(double num, double* iptr) {
+        //TODO: Consider custom implementation
+        return std::modf(num, iptr);
+    }
+
+    [[nodiscard]]
     AVEL_FINL double scalbn(double x, std::int64_t exp) {
         return avel::ldexp(x, exp);
     }

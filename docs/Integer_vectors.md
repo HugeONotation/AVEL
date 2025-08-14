@@ -225,6 +225,18 @@ vector insert(vector v, scalar x)
 * performs a bitwise right shift on all lanes in `x` by `S` bits
 * may perform marginally better than shifting by a runtime scalar
 
+`vector mod_bit_shift_left<S>(vector x, vector y)`
+* 
+
+`vector mod_bit_shift_right<S>(vector x, vector y)`
+* 
+
+`vector sat_bit_shift_left<S>(vector x, vector y)`
+* 
+
+`vector sat_bit_shift_right<S>(vector x, vector y)`
+* 
+
 `vector rotl<S>(vector x)`
 * performs a bitwise left rotation on all lanes in `x` by `S` bits
 * may perform marginally better than rotating by a runtime scalar
