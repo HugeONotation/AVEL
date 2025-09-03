@@ -15,8 +15,33 @@ namespace avel {
 
     template<>
     [[nodiscard]]
-    AVEL_FINL std::uint64_t set_bits<std::uint64_t>(bool x) {
+    AVEL_FINL std::uint64_t broadcast_bit<std::uint64_t>(bool x) {
         return -std::uint64_t(x);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint64_t set_bits(std::uint64_t m, std::uint64_t x) {
+        return m | x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint64_t keep_bits(std::uint64_t m, std::uint64_t x) {
+        return m & x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint64_t clear_bits(std::uint64_t m, std::uint64_t x) {
+        return ~m & x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint64_t flip_bits(std::uint64_t m, std::uint64_t x) {
+        return m ^ x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::uint64_t blend_bits(std::uint64_t m, std::uint64_t a, std::uint64_t b) {
+        return (m & a) | (~m & b);
     }
 
     [[nodiscard]]
@@ -431,7 +456,7 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL std::uint64_t midpoint(std::uint64_t a, std::uint64_t b) {
         std::uint64_t t0 = a & b & std::uint64_t{0x1};
-        std::uint64_t t1 = (a | b) & std::uint64_t{0x1} & avel::set_bits<std::uint64_t>(a > b);
+        std::uint64_t t1 = (a | b) & std::uint64_t{0x1} & avel::broadcast_bit<std::uint64_t>(a > b);
         std::uint64_t t2 = t0 | t1;
         return (a >> 1) + (b >> 1) + t2;
     }

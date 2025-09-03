@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec32x16u> div(vec32x16u x, vec32x16u y);
-    vec32x16u set_bits(mask32x16u m);
+    vec32x16u broadcast_bit(mask32x16u m);
     vec32x16u blend(vec32x16u a, vec32x16u b, mask32x16u m);
     vec32x16u countl_one(vec32x16u x);
 
@@ -170,6 +170,21 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u keep(mask32x16u m, mask32x16u v) {
+        return mask32x16u{static_cast<mask32x16u::primitive>(decay(m) & decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u clear(mask32x16u m, mask32x16u v) {
+        return mask32x16u{static_cast<mask32x16u::primitive>(~decay(m) & decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u blend(mask32x16u m, mask32x16u a, mask32x16u b) {
+        return mask32x16u{static_cast<mask32x16u::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask32x16u m) {
@@ -712,7 +727,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec32x16u set_bits(mask32x16u m) {
+    AVEL_FINL vec32x16u broadcast_bit(mask32x16u m) {
         return vec32x16u{_mm512_movm_epi16(decay(m))};
     }
 
@@ -778,7 +793,7 @@ namespace avel {
     AVEL_FINL vec32x16u midpoint(vec32x16u a, vec32x16u b) {
         #if defined(AVEL_AVX512BW)
         auto t1 = _mm512_avg_epu16(decay(a), decay(b));
-        auto t5 = _mm512_and_si512(_mm512_ternarylogic_epi32(decay(a), decay(b), decay(set_bits(b < a)), 0x14), _mm512_set1_epi16(0x1));
+        auto t5 = _mm512_and_si512(_mm512_ternarylogic_epi32(decay(a), decay(b), decay(broadcast_bit(b < a)), 0x14), _mm512_set1_epi16(0x1));
         auto t6 = _mm512_sub_epi16(t1, t5);
         return vec32x16u{t6};
         #endif
@@ -895,9 +910,9 @@ namespace avel {
         std::int32_t i = 16;
         for (; (i-- > 0) && any(x >= y);) {
             mask32x16u b = ((x >> i) >= y);
-            x -= (set_bits(b) & (y << i));
+            x -= (broadcast_bit(b) & (y << i));
             quotient += quotient;
-            quotient -= set_bits(b);
+            quotient -= broadcast_bit(b);
         }
 
         quotient <<= (i + 1);
@@ -1067,7 +1082,7 @@ namespace avel {
         v |= v >> 8;
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
         #endif
     }
 

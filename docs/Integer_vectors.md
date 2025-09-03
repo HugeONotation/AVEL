@@ -264,7 +264,7 @@ vector insert(vector v, scalar x)
 * likely to perform poorly without AVX2 support
 
 ### General Vector Operations
-`vector set_bits(mask m)`
+`vector broadcast_bit(mask m)`
 * for each lane, sets all bits to 0 if `m` is false or to 1 if `m` is true
 
 `vector keep(mask m, vector v)`

@@ -5,12 +5,12 @@ namespace avel_tests {
 
     using namespace avel;
 
-    TEST(Scalar32u, Set_bits_false) {
-        EXPECT_EQ(set_bits<std::uint32_t>(false), 0x00000000);
+    TEST(Scalar32u, broadcast_bit_false) {
+        EXPECT_EQ(broadcast_bit<std::uint32_t>(false), 0x00000000);
     }
 
-    TEST(Scalar32u, Set_bits_true) {
-        EXPECT_EQ(set_bits<std::uint32_t>(true), 0xFFFFFFFF);
+    TEST(Scalar32u, broadcast_bit_true) {
+        EXPECT_EQ(broadcast_bit<std::uint32_t>(true), 0xFFFFFFFF);
     }
 
     TEST(Scalar32u, Pop_count_contiguous_low) {
@@ -134,7 +134,7 @@ namespace avel_tests {
         EXPECT_EQ(byteswap(0x000000FFu), 0xFF000000);
     }
 
-    TEST(Scalar32u, countl_zero_contiguous_set_bits) {
+    TEST(Scalar32u, countl_zero_contiguous_broadcast_bit) {
         EXPECT_EQ(countl_zero(0xFFFFFFFFu), 0x0000000000);
         EXPECT_EQ(countl_zero(0x7FFFFFFFu), 0x0000000001);
         EXPECT_EQ(countl_zero(0x3FFFFFFFu), 0x0000000002);
@@ -180,7 +180,7 @@ namespace avel_tests {
         EXPECT_EQ(countl_zero(0x00000000u), 0x0000000020);
     }
 
-    TEST(Scalar32u, Countr_zero_contiguous_set_bits) {
+    TEST(Scalar32u, Countr_zero_contiguous_broadcast_bit) {
         EXPECT_EQ(countr_zero(0x00000000u), 32);
         EXPECT_EQ(countr_zero(0x80000000u), 31);
         EXPECT_EQ(countr_zero(0xC0000000u), 30);
@@ -216,7 +216,7 @@ namespace avel_tests {
         EXPECT_EQ(countr_zero(0xFFFFFFFFu), 0);
     }
 
-    TEST(Scalar32u, Countrr_zero_discontiguous_set_bits) {
+    TEST(Scalar32u, Countrr_zero_discontiguous_broadcast_bit) {
         EXPECT_EQ(countr_zero(0x00000001u), 0);
     }
 

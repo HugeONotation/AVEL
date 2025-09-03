@@ -264,6 +264,63 @@ namespace avel {
     //=====================================================
 
     [[nodiscard]]
+    AVEL_FINL mask2x64f keep(mask2x64f m, mask2x64f v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask2x64f{static_cast<mask2x64f::primitive>(decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask2x64f{_mm_and_pd(decay(m), decay(v))};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask2x64f{vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(decay(v)), decay(m)))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64f clear(mask2x64f m, mask2x64f v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask2x64f{static_cast<mask2x64f::primitive>(~decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask2x64f{_mm_andnot_pd(decay(m), decay(v))};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask2x64f{vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(decay(v)), decay(m)))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64f blend(mask2x64f m, mask2x64f a, mask2x64f b) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask2x64f{static_cast<mask2x64f::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask2x64f{_mm_blendv_pd(decay(b), decay(a), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        auto x = _mm_andnot_pd(decay(m), decay(b));
+        auto y = _mm_and_pd(decay(m), decay(a));
+        return mask2x64f{_mm_or_pd(x, y)};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        auto x = vreinterpretq_u32_u64(decay(m));
+        auto y = vreinterpretq_u32_f64(decay(a));
+        auto z = vreinterpretq_u32_f64(decay(b));
+
+        auto w = vbslq_u32(x, y, z);
+
+        return mask2x64f{vreinterpretq_f64_u32(w)};
+
+        #endif
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask2x64f m) {
         #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
         return popcount(decay(m));

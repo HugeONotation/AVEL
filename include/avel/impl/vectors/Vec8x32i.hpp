@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec8x32i> div(vec8x32i x, vec8x32i y);
-    vec8x32i set_bits(mask8x32i m);
+    vec8x32i broadcast_bit(mask8x32i m);
     vec8x32i blend(mask8x32i m, vec8x32i a, vec8x32i b);
     vec8x32i negate(mask8x32i m, vec8x32i x);
 
@@ -224,6 +224,21 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32i keep(mask8x32i m, mask8x32i v) {
+        return mask8x32i{keep(mask8x32u{m}, mask8x32u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32i clear(mask8x32i m, mask8x32i v) {
+        return mask8x32i{clear(mask8x32u{m}, mask8x32u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32i blend(mask8x32i m, mask8x32i a, mask8x32i b) {
+        return mask8x32i{blend(mask8x32u{m}, mask8x32u{a}, mask8x32u{b})};
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask8x32i m) {
@@ -683,8 +698,8 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec8x32i set_bits(mask8x32i m) {
-        return vec8x32i{set_bits(mask8x32u{m})};
+    AVEL_FINL vec8x32i broadcast_bit(mask8x32i m) {
+        return vec8x32i{broadcast_bit(mask8x32u{m})};
     }
 
     [[nodiscard]]
@@ -734,7 +749,7 @@ namespace avel {
     AVEL_FINL vec8x32i average(vec8x32i a, vec8x32i b) {
         #if defined(AVEL_AVX2)
         auto avg = (a & b) + ((a ^ b) >> 1);
-        auto c = set_bits((a < -b) | (b == vec8x32i{std::int32_t(1 << 31)})) & (a ^ b) & vec8x32i{1};
+        auto c = broadcast_bit((a < -b) | (b == vec8x32i{std::int32_t(1 << 31)})) & (a ^ b) & vec8x32i{1};
 
         return avg + c;
 
@@ -754,7 +769,7 @@ namespace avel {
 
         #elif defined(AVEL_AVX2)
         auto average = ((a ^ b) >> 1) + (a & b);
-        auto bias = (set_bits(b < a) & (a ^ b) & vec8x32i{0x1});
+        auto bias = (broadcast_bit(b < a) & (a ^ b) & vec8x32i{0x1});
         return average + bias;
 
         #endif

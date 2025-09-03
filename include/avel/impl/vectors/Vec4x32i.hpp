@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec4x32i> div(vec4x32i x, vec4x32i y);
-    vec4x32i set_bits(mask4x32i m);
+    vec4x32i broadcast_bit(mask4x32i m);
     vec4x32i blend(mask4x32i m, vec4x32i a, vec4x32i b);
     vec4x32i negate(mask4x32i m, vec4x32i x);
 
@@ -291,6 +291,21 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32i keep(mask4x32i m, mask4x32i v) {
+        return mask4x32i{keep(mask4x32u{m}, mask4x32u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32i clear(mask4x32i m, mask4x32i v) {
+        return mask4x32i{clear(mask4x32u{m}, mask4x32u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32i blend(mask4x32i m, mask4x32i a, mask4x32i b) {
+        return mask4x32i{blend(mask4x32u{m}, mask4x32u{a}, mask4x32u{b})};
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask4x32i m) {
@@ -967,7 +982,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec4x32i set_bits(mask4x32i m) {
+    AVEL_FINL vec4x32i broadcast_bit(mask4x32i m) {
         #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)) || defined(AVEL_AVX10_1)
         return vec4x32i{_mm_movm_epi32(decay(m))};
 
@@ -1064,7 +1079,7 @@ namespace avel {
     AVEL_FINL vec4x32i average(vec4x32i a, vec4x32i b) {
         #if defined(AVEL_SSE2)
         auto avg = (a & b) + ((a ^ b) >> 1);
-        auto c = set_bits((a < -b) | (b == vec4x32i{std::int32_t(1 << 31)})) & (a ^ b) & vec4x32i{1};
+        auto c = broadcast_bit((a < -b) | (b == vec4x32i{std::int32_t(1 << 31)})) & (a ^ b) & vec4x32i{1};
 
         return avg + c;
 
@@ -1072,7 +1087,7 @@ namespace avel {
 
         #if defined(AVEL_NEON)
         auto avg = vec4x32i{vhaddq_s32(decay(a), decay(b))};
-        auto c = set_bits((a < -b) | (b == vec4x32i{std::int32_t(1 << 31)})) & (a ^ b) & vec4x32i{1};
+        auto c = broadcast_bit((a < -b) | (b == vec4x32i{std::int32_t(1 << 31)})) & (a ^ b) & vec4x32i{1};
 
         return avg + c;
 
@@ -1092,14 +1107,14 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         auto average = ((a ^ b) >> 1) + (a & b);
-        auto bias = (set_bits(b < a) & (a ^ b) & vec4x32i{0x1});
+        auto bias = (broadcast_bit(b < a) & (a ^ b) & vec4x32i{0x1});
         return average + bias;
 
         #endif
 
         #if defined(AVEL_NEON)
         vec4x32i t0 = vec4x32i{vhaddq_s32(decay(a), decay(b))};
-        vec4x32i t1 = (a ^ b) & vec4x32i{0x1} & set_bits(b < a);
+        vec4x32i t1 = (a ^ b) & vec4x32i{0x1} & broadcast_bit(b < a);
         return t0 + t1;
 
         #endif
@@ -1115,7 +1130,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_SSE2) || defined(AVEL_NEON)
-        auto mask = set_bits(m);
+        auto mask = broadcast_bit(m);
         return (x ^ mask) - mask;
         #endif
     }

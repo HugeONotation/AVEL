@@ -81,8 +81,8 @@ versions of the same functionality including:
   `midpoint`, and `abs`
 * most of the functions from C++ 20's `<bit>` header
 * a selection of float-manipulation functions from the `<cmath>` header 
-* misc. AVEL-specific functions such as `negate`, `blend`, `keep`, `clear`, 
-  `set_bits` which are useful in the context of writing vectorized code
+* misc. AVEL-specific functions such as `negate`, `blend`, `keep`, `clear`,
+  `broadcast_bit` which str useful in the context of writing vectorized code
 
 AVEL also offers scalar implementations of all of its vectorized facilities in 
 the `avel/Scalar. hpp` header. These will also take advantage of scalar 

@@ -178,6 +178,21 @@ namespace avel {
     //=====================================================
 
     [[nodiscard]]
+    AVEL_FINL mask8x64f keep(mask8x64f m, mask8x64f v) {
+        return mask8x64f{static_cast<mask8x64f::primitive>(decay(m) & decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x64f clear(mask8x64f m, mask8x64f v) {
+        return mask8x64f{static_cast<mask8x64f::primitive>(~decay(m) & decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x64f blend(mask8x64f m, mask8x64f a, mask8x64f b) {
+        return mask8x64f{static_cast<mask8x64f::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask8x64f m) {
         return popcount(decay(m));
     }

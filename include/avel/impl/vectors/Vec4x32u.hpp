@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec4x32u> div(vec4x32u x, vec4x32u y);
-    vec4x32u set_bits(mask4x32u m);
+    vec4x32u broadcast_bit(mask4x32u m);
     vec4x32u blend(mask4x32u m, vec4x32u a, vec4x32u b);
     vec4x32u countl_one(vec4x32u x);
 
@@ -275,6 +275,55 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u keep(mask4x32u m, mask4x32u v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask4x32u{static_cast<mask4x32u::primitive>(decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask4x32u{_mm_and_si128(decay(m), decay(v))};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vandq_u32(decay(v), decay(m))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u clear(mask4x32u m, mask4x32u v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask4x32u{static_cast<mask4x32u::primitive>(~decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask4x32u{_mm_andnot_si128(decay(m), decay(v))};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vbicq_u32(decay(v), decay(m))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u blend(mask4x32u m, mask4x32u a, mask4x32u b) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask4x32u{static_cast<mask4x32u::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask4x32u{_mm_blendv_epi8(decay(b), decay(a), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        auto x = _mm_andnot_si128(decay(m), decay(b));
+        auto y = _mm_and_si128(decay(m), decay(a));
+        return mask4x32u{_mm_or_si128(x, y)};
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vbslq_u32(decay(m), decay(a), decay(b))};
+        #endif
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask4x32u m) {
@@ -1204,7 +1253,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec4x32u set_bits(mask4x32u m) {
+    AVEL_FINL vec4x32u broadcast_bit(mask4x32u m) {
         #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)) || defined(AVEL_AVX10_1)
         return vec4x32u{_mm_movm_epi32(decay(m))};
 
@@ -1228,14 +1277,13 @@ namespace avel {
         return vec4x32u{_mm_maskz_mov_epi32(decay(m), decay(v))};
 
         #elif defined(AVEL_SSE2)
-        return set_bits(m) & v;
+        return vec4x32u{_mm_and_si128(decay(m), decay(v))};
 
         #endif
 
         #if defined(AVEL_NEON)
-        return set_bits(m) & v;
+        return vec4x32u{vandq_u32(decay(v), decay(m))};
         #endif
-
     }
 
     [[nodiscard]]
@@ -1344,13 +1392,13 @@ namespace avel {
     AVEL_FINL vec4x32u midpoint(vec4x32u a, vec4x32u b) {
         #if defined(AVEL_SSE2)
         vec4x32u avg = ((a ^ b) >> 1) + (a & b);
-        vec4x32u c = set_bits(b < a) & (a ^ b) & vec4x32u{0x1};
+        vec4x32u c = broadcast_bit(b < a) & (a ^ b) & vec4x32u{0x1};
         return avg + c;
         #endif
 
         #if defined(AVEL_NEON)
         vec4x32u t0 = vec4x32u{vhaddq_u32(decay(a), decay(b))};
-        vec4x32u t1 = (a ^ b) & vec4x32u{0x1} & set_bits(a > b);
+        vec4x32u t1 = (a ^ b) & vec4x32u{0x1} & broadcast_bit(a > b);
         return t0 + t1;
 
         #endif
@@ -1620,7 +1668,7 @@ namespace avel {
         std::uint32_t i = 32;
         for (; (i-- > 0) && any(mask4x32u(x));) {
             mask4x32u b = ((x >> i) >= y);
-            x -= (set_bits(b) & (y << i));
+            x -= (broadcast_bit(b) & (y << i));
             quotient |= (vec4x32u{b} << i);
         }
 
@@ -1811,27 +1859,27 @@ namespace avel {
 
         vec4x32u m0{0xFFFF0000u};
         mask4x32u b0 = (m0 & x) == m0;
-        sum += set_bits(b0) & vec4x32u{16};
-        x <<= set_bits(b0) * vec4x32u{16};
+        sum += broadcast_bit(b0) & vec4x32u{16};
+        x <<= broadcast_bit(b0) * vec4x32u{16};
 
         vec4x32u m1{0xFF000000u};
         mask4x32u b1 = (m1 & x) == m1;
-        sum += set_bits(b1) & vec4x32u{8};
-        x <<= set_bits(b1) & vec4x32u{8};
+        sum += broadcast_bit(b1) & vec4x32u{8};
+        x <<= broadcast_bit(b1) & vec4x32u{8};
 
         vec4x32u m2{0xF0000000u};
         mask4x32u b2 = (m2 & x) == m2;
-        sum += set_bits(b2) & vec4x32u{4};
-        x <<= set_bits(b2) & vec4x32u{4};
+        sum += broadcast_bit(b2) & vec4x32u{4};
+        x <<= broadcast_bit(b2) & vec4x32u{4};
 
         vec4x32u m3{0xC0000000u};
         mask4x32u b3 = (m3 & x) == m3;
-        sum += set_bits(b3) & vec4x32u{2};
-        x <<= set_bits(b3) & vec4x32u{2};
+        sum += broadcast_bit(b3) & vec4x32u{2};
+        x <<= broadcast_bit(b3) & vec4x32u{2};
 
         vec4x32u m4{0x80000000u};
         mask4x32u b4 = (m4 & x) == m4;
-        sum += set_bits(b4) & vec4x32u{1};
+        sum += broadcast_bit(b4) & vec4x32u{1};
 
         return sum;
         */
@@ -1938,7 +1986,7 @@ namespace avel {
         x |= bit_shift_right<4>(x);
         x |= bit_shift_right<8>(x);
         x |= bit_shift_right<16>(x);
-        x = _mm_andnot_si128(decay(set_bits(zero_mask)), decay(x));
+        x = _mm_andnot_si128(decay(broadcast_bit(zero_mask)), decay(x));
         ++x;
 
         return x;
@@ -1948,7 +1996,7 @@ namespace avel {
         #if defined(AVEL_NEON)
         auto sh = (vec4x32u{32} - countl_zero(x - vec4x32u{1}));
         auto result = vec4x32u{1} << sh;
-        return result - set_bits(x == vec4x32u{0x00});
+        return result - broadcast_bit(x == vec4x32u{0x00});
         #endif
     };
 

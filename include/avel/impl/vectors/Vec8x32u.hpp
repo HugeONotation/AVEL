@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec8x32u> div(vec8x32u x, vec8x32u y);
-    vec8x32u set_bits(mask8x32u m);
+    vec8x32u broadcast_bit(mask8x32u m);
     vec8x32u blend(mask8x32u m, vec8x32u a, vec8x32u b);
     vec8x32u countl_one(vec8x32u x);
 
@@ -208,6 +208,37 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u keep(mask8x32u m, mask8x32u v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask8x32u{static_cast<mask8x32u::primitive>(decay(m) & decay(v))};
+
+        #elif defined(AVEL_AVX2)
+        return mask8x32u{_mm256_and_si256(decay(m), decay(v))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u clear(mask8x32u m, mask8x32u v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask8x32u{static_cast<mask8x32u::primitive>(~decay(m) & decay(v))};
+
+        #elif defined(AVEL_AVX2)
+        return mask8x32u{_mm256_andnot_si256(decay(m), decay(v))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u blend(mask8x32u m, mask8x32u a, mask8x32u b) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask8x32u{static_cast<mask8x32u::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+
+        #elif defined(AVEL_AVX2)
+        return mask8x32u{_mm256_blendv_epi8(decay(b), decay(a), decay(m))};
+
+        #endif
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask8x32u m) {
@@ -793,7 +824,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec8x32u set_bits(mask8x32u m) {
+    AVEL_FINL vec8x32u broadcast_bit(mask8x32u m) {
         #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)) || defined(AVEL_AVX10_1)
         return vec8x32u{_mm256_movm_epi32(decay(m))};
 
@@ -811,10 +842,8 @@ namespace avel {
         return vec8x32u{_mm256_maskz_mov_epi32(decay(m), decay(v))};
 
         #elif defined(AVEL_AVX2)
-        return set_bits(m) & v;
-
+        return vec8x32u{_mm256_and_si256(decay(m), decay(v))};
         #endif
-
     }
 
     [[nodiscard]]
@@ -824,7 +853,6 @@ namespace avel {
 
         #elif defined(AVEL_AVX2)
         return vec8x32u{_mm256_andnot_si256(decay(m), decay(v))};
-
         #endif
     }
 
@@ -870,7 +898,7 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL vec8x32u midpoint(vec8x32u a, vec8x32u b) {
         vec8x32u t0 = a & b & vec8x32u{0x1};
-        vec8x32u t1 = (a | b) & vec8x32u{0x1} & set_bits(a > b);
+        vec8x32u t1 = (a | b) & vec8x32u{0x1} & broadcast_bit(a > b);
         vec8x32u t2 = t0 | t1;
         return (a >> 1) + (b >> 1) + t2;
     }
@@ -1038,7 +1066,7 @@ namespace avel {
         std::int32_t i = 32;
         for (; (i-- > 0) && any(mask8x32u(x));) {
             mask8x32u b = ((x >> i) >= y);
-            x -= (set_bits(b) & (y << i));
+            x -= (broadcast_bit(b) & (y << i));
             quotient |= (vec8x32u{b} << i);
         }
 
@@ -1209,7 +1237,7 @@ namespace avel {
         v |= bit_shift_right<4>(v);
         v |= bit_shift_right<8>(v);
         v |= bit_shift_right<16>(v);
-        v = _mm256_andnot_si256(decay(set_bits(zero_mask)), decay(v));
+        v = _mm256_andnot_si256(decay(broadcast_bit(zero_mask)), decay(v));
         ++v;
         return v;
         #endif

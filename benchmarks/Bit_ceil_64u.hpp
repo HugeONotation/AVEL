@@ -93,7 +93,7 @@ namespace avel::benchmarks::bit_ceil_64u {
         v |= bit_shift_right<16>(v);
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
     }
 
     auto vec2x64u_bitwise = vector_test_bench<vec2x64u, vec2x64u_bitwise_impl>;
@@ -109,7 +109,7 @@ namespace avel::benchmarks::bit_ceil_64u {
     vec2x64u vec2x64u_lzcnt_impl(vec2x64u v) {
         auto sh = (vec2x64u{64} - countl_zero(v - vec2x64u{1}));
         auto result = vec2x64u{1} << sh;
-        return result - set_bits(v == vec2x64u{0x00});
+        return result - broadcast_bit(v == vec2x64u{0x00});
     }
 
     auto vec2x64u_lzcnt = vector_test_bench<vec2x64u, vec2x64u_lzcnt_impl>;
@@ -135,7 +135,7 @@ namespace avel::benchmarks::bit_ceil_64u {
         v |= bit_shift_right<16>(v);
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
     }
 
     auto vec4x64u_bitwise = vector_test_bench<vec4x64u, vec4x64u_bitwise_impl>;
@@ -151,7 +151,7 @@ namespace avel::benchmarks::bit_ceil_64u {
     vec4x64u vec4x64u_lzcnt_impl(vec4x64u v) {
         auto sh = (vec4x64u{64} - countl_zero(v - vec4x64u{1}));
         auto result = vec4x64u{1} << sh;
-        return result - set_bits(v == vec4x64u{0x00});
+        return result - broadcast_bit(v == vec4x64u{0x00});
     }
 
     auto vec4x64u_lzcnt = vector_test_bench<vec4x64u, vec4x64u_lzcnt_impl>;
@@ -177,7 +177,7 @@ namespace avel::benchmarks::bit_ceil_64u {
         v |= bit_shift_right<16>(v);
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
     }
 
     auto vec8x64u_bitwise = vector_test_bench<vec8x64u, vec8x64u_bitwise_impl>;
@@ -193,7 +193,7 @@ namespace avel::benchmarks::bit_ceil_64u {
     vec8x64u vec4x64u_lzcnt_impl(vec8x64u v) {
         auto sh = (vec8x64u{64} - countl_zero(v - vec8x64u{1}));
         auto result = vec8x64u{1} << sh;
-        return result - set_bits(v == vec8x64u{0x00});
+        return result - broadcast_bit(v == vec8x64u{0x00});
     }
 
     auto vec8x64u_lzcnt = vector_test_bench<vec8x64u, vec4x64u_lzcnt_impl>;

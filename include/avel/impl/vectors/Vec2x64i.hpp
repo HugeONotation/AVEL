@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec2x64i> div(vec2x64i x, vec2x64i y);
-    vec2x64i set_bits(mask2x64i m);
+    vec2x64i broadcast_bit(mask2x64i m);
     vec2x64i blend(mask2x64i m, vec2x64i a, vec2x64i b);
     vec2x64i negate(mask2x64i m, vec2x64i x);
 
@@ -287,6 +287,42 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64i keep(mask2x64i m, mask2x64i v) {
+        return mask2x64i{keep(mask2x64u{m}, mask2x64u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64i clear(mask2x64i m, mask2x64i v) {
+        return mask2x64i{clear(mask2x64u{m}, mask2x64u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64i blend(mask2x64i m, mask2x64i a, mask2x64i b) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask2x64i{blend(mask2x64u{m}, mask2x64u{a}, mask2x64u{b})};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask2x64i{_mm_blendv_epi8(decay(b), decay(a), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        auto x = _mm_andnot_si128(decay(m), decay(b));
+        auto y = _mm_and_si128(decay(m), decay(a));
+        return mask2x64i{_mm_or_si128(x, y)};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        auto x = vreinterpretq_u32_u64(decay(m));
+        auto y = vreinterpretq_u32_s64(decay(a));
+        auto z = vreinterpretq_u32_s64(decay(b));
+
+        auto w = vbslq_u32(x, y, z);
+
+        return mask2x64i{vreinterpretq_s64_u32(w)};
+        #endif
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask2x64i m) {
@@ -1145,7 +1181,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec2x64i set_bits(mask2x64i m) {
+    AVEL_FINL vec2x64i broadcast_bit(mask2x64i m) {
         #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)) || defined(AVEL_AVX10_1)
         return vec2x64i{_mm_movm_epi64(decay(m))};
 
@@ -1262,7 +1298,7 @@ namespace avel {
     AVEL_FINL vec2x64i average(vec2x64i x, vec2x64i y) {
         #if defined(AVEL_SSE2)
         auto avg = (x & y) + ((x ^ y) >> 1);
-        auto c = set_bits((x < -y) | (y == vec2x64i{std::int64_t(1) << 63})) & (x ^ y) & vec2x64i{1};
+        auto c = broadcast_bit((x < -y) | (y == vec2x64i{std::int64_t(1) << 63})) & (x ^ y) & vec2x64i{1};
 
         return avg + c;
 
@@ -1270,7 +1306,7 @@ namespace avel {
 
         #if defined(AVEL_NEON)
         auto avg = (x & y) + ((x ^ y) >> 1);
-        auto c = set_bits((x < -y) | (y == vec2x64i{std::int64_t(1) << 63})) & (x ^ y) & vec2x64i{1};
+        auto c = broadcast_bit((x < -y) | (y == vec2x64i{std::int64_t(1) << 63})) & (x ^ y) & vec2x64i{1};
 
         return avg + c;
 
@@ -1290,14 +1326,14 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         auto average = ((a ^ b) >> 1) + (a & b);
-        auto bias = (set_bits(b < a) & (a ^ b) & vec2x64i{0x1});
+        auto bias = (broadcast_bit(b < a) & (a ^ b) & vec2x64i{0x1});
         return average + bias;
 
         #endif
 
         #if defined(AVEL_NEON)
         vec2x64i avg{vsraq_n_s64(vandq_s64(decay(a), decay(b)), veorq_s64(decay(a), decay(b)), 1)};
-        auto bias = (set_bits(b < a) & (a ^ b) & vec2x64i{0x1});
+        auto bias = (broadcast_bit(b < a) & (a ^ b) & vec2x64i{0x1});
         return avg + bias;
 
         #endif
@@ -1310,12 +1346,12 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
 
-        auto mask = set_bits(m);
+        auto mask = broadcast_bit(m);
         return (x ^ mask) - mask;
         #endif
 
         #if defined(AVEL_NEON)
-        auto mask = set_bits(m);
+        auto mask = broadcast_bit(m);
         return (x ^ mask) - mask;
         #endif
     }

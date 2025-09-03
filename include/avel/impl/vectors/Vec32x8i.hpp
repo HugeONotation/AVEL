@@ -17,7 +17,7 @@ namespace avel {
 
     div_type<vec32x8i> div(vec32x8i x, vec32x8i y);
     vec32x8i blend(mask32x8i m, vec32x8i a, vec32x8i b);
-    vec32x8i set_bits(mask32x8i m);
+    vec32x8i broadcast_bit(mask32x8i m);
     vec32x8i negate(mask32x8i m, vec32x8i x);
 
 
@@ -227,6 +227,21 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask32x8i keep(mask32x8i m, mask32x8i v) {
+        return mask32x8i{keep(mask32x8u{m}, mask32x8u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x8i clear(mask32x8i m, mask32x8i v) {
+        return mask32x8i{clear(mask32x8u{m}, mask32x8u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x8i blend(mask32x8i m, mask32x8i a, mask32x8i b) {
+        return mask32x8i{blend(mask32x8u{m}, mask32x8u{a}, mask32x8u{b})};
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask32x8i m) {
@@ -817,7 +832,7 @@ namespace avel {
     template<>
     [[nodiscard]]
     AVEL_FINL vec32x8i bit_shift_right<8>(vec32x8i v) {
-        return set_bits(v < vec32x8i{0x00});
+        return broadcast_bit(v < vec32x8i{0x00});
     }
 
 
@@ -883,8 +898,8 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec32x8i set_bits(mask32x8i m) {
-        return vec32x8i{set_bits(mask32x8u{m})};
+    AVEL_FINL vec32x8i broadcast_bit(mask32x8i m) {
+        return vec32x8i{broadcast_bit(mask32x8u{m})};
     }
 
     [[nodiscard]]
@@ -940,7 +955,7 @@ namespace avel {
     AVEL_FINL vec32x8i average(vec32x8i a, vec32x8i b) {
         auto tmp = (a ^ b);
         auto avg = (a & b) + (tmp >> 1);
-        auto c = set_bits((a < -b) | (b == vec32x8i(0x80))) & tmp & vec32x8i{0x01};
+        auto c = broadcast_bit((a < -b) | (b == vec32x8i(0x80))) & tmp & vec32x8i{0x01};
         return avg + c;
     }
 

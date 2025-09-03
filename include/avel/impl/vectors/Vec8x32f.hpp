@@ -211,6 +211,38 @@ namespace avel {
     //=====================================================
 
     [[nodiscard]]
+    AVEL_FINL mask8x32f keep(mask8x32f m, mask8x32f v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask8x32f{static_cast<mask8x32f::primitive>(decay(m) & decay(v))};
+
+        #elif defined(AVEL_AVX)
+        return mask8x32f{_mm256_and_ps(decay(m), decay(v))};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32f clear(mask8x32f m, mask8x32f v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask8x32f{static_cast<mask8x32f::primitive>(~decay(m) & decay(v))};
+
+        #elif defined(AVEL_AVX)
+        return mask8x32f{_mm256_andnot_ps(decay(m), decay(v))};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32f blend(mask8x32f m, mask8x32f a, mask8x32f b) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask8x32f{static_cast<mask8x32f::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+
+        #elif defined(AVEL_AVX)
+        return mask8x32f{_mm256_blendv_ps(decay(b), decay(a), decay(m))};
+        #endif
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask8x32f m) {
         #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
         return avel::popcount(decay(m));

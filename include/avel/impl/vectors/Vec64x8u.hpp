@@ -1,6 +1,8 @@
 #ifndef AVEL_VEC64X8U_HPP
 #define AVEL_VEC64X8U_HPP
 
+#include <type_traits>
+
 namespace avel {
 
     //=====================================================
@@ -16,7 +18,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec64x8u> div(vec64x8u x, vec64x8u y);
-    vec64x8u set_bits(mask64x8u m);
+    vec64x8u broadcast_bit(mask64x8u m);
     vec64x8u blend(vec64x8u a, vec64x8u b, mask64x8u m);
     vec64x8u countl_one(vec64x8u v);
     vec64x8u bit_width(vec64x8u v);
@@ -173,6 +175,27 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask64x8u keep(mask64x8u m, mask64x8u v) {
+        #if defined(AVEL_AVX512BW)
+        return mask64x8u{static_cast<mask64x8u::primitive>(decay(m) & decay(v))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask64x8u clear(mask64x8u m, mask64x8u v) {
+        #if defined(AVEL_AVX512BW)
+        return mask64x8u{static_cast<mask64x8u::primitive>(~decay(m) & decay(v))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask64x8u blend(mask64x8u m, mask64x8u a, mask64x8u b) {
+        #if defined(AVEL_AVX512BW)
+        return mask64x8u{static_cast<mask64x8u::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+        #endif
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask64x8u m) {
@@ -874,7 +897,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec64x8u set_bits(mask64x8u m) {
+    AVEL_FINL vec64x8u broadcast_bit(mask64x8u m) {
         #if defined(AVEL_AVX512BW)
         return vec64x8u{_mm512_movm_epi8(decay(m))};
         #endif
@@ -946,7 +969,7 @@ namespace avel {
     AVEL_FINL vec64x8u midpoint(vec64x8u a, vec64x8u b) {
         #if defined(AVEL_AVX512BW)
         auto t1 = _mm512_avg_epu8(decay(a), decay(b));
-        auto t5 = _mm512_and_si512(_mm512_ternarylogic_epi32(decay(a), decay(b), decay(set_bits(b < a)), 0x14), _mm512_set1_epi8(0x1));
+        auto t5 = _mm512_and_si512(_mm512_ternarylogic_epi32(decay(a), decay(b), decay(broadcast_bit(b < a)), 0x14), _mm512_set1_epi8(0x1));
         auto t6 = _mm512_sub_epi8(t1, t5);
         return vec64x8u{t6};
         #endif

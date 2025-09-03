@@ -138,6 +138,21 @@ namespace avel {
     //=====================================================
 
     [[nodiscard]]
+    AVEL_FINL mask1x64f keep(mask1x64f m, mask1x64f v) {
+        return mask1x64f{avel::keep(decay(m), decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x64f clear(mask1x64f m, mask1x64f v) {
+        return mask1x64f{avel::clear(decay(m), decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x64f blend(mask1x64f m, mask1x64f a, mask1x64f b) {
+        return mask1x64f{blend(decay(m), decay(a), decay(b))};
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask1x64f m) {
         return decay(m);
     }

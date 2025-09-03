@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec16x32u> div(vec16x32u x, vec16x32u y);
-    vec16x32u set_bits(mask16x32u m);
+    vec16x32u broadcast_bit(mask16x32u m);
     vec16x32u blend(mask16x32u m, vec16x32u a, vec16x32u b);
     vec16x32u countl_one(vec16x32u x);
 
@@ -161,6 +161,27 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask16x32u keep(mask16x32u m, mask16x32u v) {
+        #if defined(AVEL_AVX512F)
+        return mask16x32u{static_cast<mask16x32u::primitive>(decay(m) & decay(v))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask16x32u clear(mask16x32u m, mask16x32u v) {
+        #if defined(AVEL_AVX512F)
+        return mask16x32u{static_cast<mask16x32u::primitive>(~decay(m) & decay(v))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask16x32u blend(mask16x32u m, mask16x32u a, mask16x32u b) {
+        #if defined(AVEL_AVX512F)
+        return mask16x32u{static_cast<mask16x32u::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+        #endif
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask16x32u m) {
@@ -636,7 +657,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec16x32u set_bits(mask16x32u m) {
+    AVEL_FINL vec16x32u broadcast_bit(mask16x32u m) {
         #if defined(AVEL_AVX512DQ)
         return vec16x32u{_mm512_movm_epi32(decay(m))};
 
@@ -696,7 +717,7 @@ namespace avel {
     AVEL_FINL vec16x32u midpoint(vec16x32u a, vec16x32u b) {
         #if defined(AVEL_AVX512F)
         vec16x32u t0 = a & b & vec16x32u{0x1};
-        vec16x32u t1 = (a | b) & vec16x32u{0x1} & set_bits(a > b);
+        vec16x32u t1 = (a | b) & vec16x32u{0x1} & broadcast_bit(a > b);
         vec16x32u t2 = t0 | t1;
         return (a >> 1) + (b >> 1) + t2;
         #endif
@@ -830,9 +851,9 @@ namespace avel {
         std::int32_t i = 32;
         for (; (i-- > 0) && any(x >= y);) {
             mask16x32u b = ((x >> i) >= y);
-            x -= (set_bits(b) & (y << i));
+            x -= (broadcast_bit(b) & (y << i));
             quotient += quotient;
-            quotient -= set_bits(b);
+            quotient -= broadcast_bit(b);
         }
 
         quotient <<= (i + 1);

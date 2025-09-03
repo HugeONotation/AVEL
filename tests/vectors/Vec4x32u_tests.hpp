@@ -342,6 +342,65 @@ namespace avel_tests {
     // Mask functions
     //=====================================================
 
+    TEST(Mask4x32u, Keep_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr4xb>();
+            auto inputs1 = random_array<arr4xb>();
+
+            mask4x32u v0{inputs0};
+            mask4x32u v1{inputs1};
+
+            auto results = avel::keep(v0, v1);
+
+            arr4xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::keep(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask4x32u{expected});
+        }
+    }
+
+    TEST(Mask4x32u, Clear_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr4xb>();
+            auto inputs1 = random_array<arr4xb>();
+
+            mask4x32u v0{inputs0};
+            mask4x32u v1{inputs1};
+
+            auto results = avel::clear(v0, v1);
+
+            arr4xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::clear(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask4x32u{expected});
+        }
+    }
+
+    TEST(Mask4x32u, Blend_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr4xb>();
+            auto inputs1 = random_array<arr4xb>();
+            auto inputs2 = random_array<arr4xb>();
+
+            mask4x32u v0{inputs0};
+            mask4x32u v1{inputs1};
+            mask4x32u v2{inputs2};
+
+            auto results = avel::blend(v0, v1, v2);
+
+            arr4xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::blend(inputs0[j], inputs1[j], inputs2[j]);
+            }
+
+            EXPECT_TRUE(results == mask4x32u{expected});
+        }
+    }
+
     TEST(Mask4x32u, Count_random) {
         for (std::size_t i = 0; i < iterations; ++i) {
             auto inputs = random_array<arr4xb>();
@@ -1593,13 +1652,13 @@ namespace avel_tests {
         }
     }
 
-    TEST(Vec4x32u, Set_bits_random) {
+    TEST(Vec4x32u, broadcast_bit_random) {
         for (std::size_t i = 0; i < iterations; ++i) {
             auto inputs = random_array<arr4xb>();
 
             mask4x32u v{inputs};
 
-            auto results = set_bits(v);
+            auto results = broadcast_bit(v);
 
             arr4x32u expected{};
             for (std::size_t j = 0; j < inputs.size(); ++j) {

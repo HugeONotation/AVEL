@@ -19,8 +19,33 @@ namespace avel {
 
     template<>
     [[nodiscard]]
-    AVEL_FINL std::uint8_t set_bits<std::uint8_t>(bool x) {
+    AVEL_FINL std::uint8_t broadcast_bit<std::uint8_t>(bool x) {
         return -std::uint8_t(x);
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::int8_t set_bits(std::int8_t m, std::int8_t x) {
+        return m | x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::int8_t keep_bits(std::int8_t m, std::int8_t x) {
+        return m & x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::int8_t clear_bits(std::int8_t m, std::int8_t x) {
+        return ~m & x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::int8_t flip_bits(std::int8_t m, std::int8_t x) {
+        return m ^ x;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL std::int8_t blend_bits(std::int8_t m, std::int8_t a, std::int8_t b) {
+        return (m & a) | (~m & b);
     }
 
     [[nodiscard]]

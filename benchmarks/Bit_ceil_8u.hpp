@@ -89,7 +89,7 @@ namespace avel::benchmarks::bit_ceil_8u {
         v |= bit_shift_right<4>(v);
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
     }
 
     auto vec16x8u_bitwise = vector_test_bench<vec16x8u, vec16x8u_bitwise_impl>;

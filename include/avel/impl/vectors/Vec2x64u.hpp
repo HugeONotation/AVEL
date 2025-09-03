@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec2x64u> div(vec2x64u x, vec2x64u y);
-    vec2x64u set_bits(mask2x64u m);
+    vec2x64u broadcast_bit(mask2x64u m);
     vec2x64u blend(mask2x64u m, vec2x64u a, vec2x64u b);
     vec2x64u countl_one(vec2x64u x);
 
@@ -277,6 +277,64 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u keep(mask2x64u m, mask2x64u v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask2x64u{static_cast<mask2x64u::primitive>(decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask2x64u{_mm_and_si128(decay(m), decay(v))};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask2x64u{vandq_u64(decay(v), decay(m))};
+        #endif
+
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u clear(mask2x64u m, mask2x64u v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask2x64u{static_cast<mask2x64u::primitive>(~decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask2x64u{_mm_andnot_si128(decay(m), decay(v))};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask2x64u{vbicq_u64(decay(v), decay(m))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u blend(mask2x64u m, mask2x64u a, mask2x64u b) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask2x64u{static_cast<mask2x64u::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask2x64u{_mm_blendv_epi8(decay(b), decay(a), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        auto x = _mm_andnot_si128(decay(m), decay(b));
+        auto y = _mm_and_si128(decay(m), decay(a));
+        return mask2x64u{_mm_or_si128(x, y)};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        auto x = vreinterpretq_u32_u64(decay(m));
+        auto y = vreinterpretq_u32_u64(decay(a));
+        auto z = vreinterpretq_u32_u64(decay(b));
+
+        auto w = vbslq_u32(x, y, z);
+
+        return mask2x64u{vreinterpretq_u64_u32(w)};
+
+        #endif
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask2x64u m) {
@@ -1280,7 +1338,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec2x64u set_bits(mask2x64u m) {
+    AVEL_FINL vec2x64u broadcast_bit(mask2x64u m) {
         #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512DQ)) || defined(AVEL_AVX10_1)
         return vec2x64u{_mm_movm_epi64(decay(m))};
 
@@ -1303,12 +1361,12 @@ namespace avel {
         return vec2x64u{_mm_maskz_mov_epi64(decay(m), decay(v))};
 
         #elif defined(AVEL_SSE2)
-        return set_bits(m) & v;
+        return vec2x64u{_mm_and_si128(decay(m), decay(v))};
 
         #endif
 
         #if defined(AVEL_NEON)
-        return set_bits(m) & v;
+        return vec2x64u{vbicq_u64(decay(v), decay(m))};
         #endif
 
     }
@@ -1449,7 +1507,7 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL vec2x64u midpoint(vec2x64u a, vec2x64u b) {
         vec2x64u t0 = a & b & vec2x64u{0x1};
-        vec2x64u t1 = (a | b) & vec2x64u{0x1} & set_bits(a > b);
+        vec2x64u t1 = (a | b) & vec2x64u{0x1} & broadcast_bit(a > b);
         vec2x64u t2 = t0 | t1;
         return (a >> 1) + (b >> 1) + t2;
     }
@@ -1855,7 +1913,7 @@ namespace avel {
         #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512CD)) || defined(AVEL_AVX10_1)
         auto sh = (vec2x64u{64} - countl_zero(v - vec2x64u{1}));
         auto result = vec2x64u{1} << sh;
-        return result - set_bits(v == vec2x64u{0x00});
+        return result - broadcast_bit(v == vec2x64u{0x00});
 
         #elif defined(AVEL_SSE2)
         auto zero_mask = (v == vec2x64u{0});
@@ -1869,13 +1927,13 @@ namespace avel {
         v |= v >> 32;
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
         #endif
 
         #if defined(AVEL_NEON)
         auto sh = (vec2x64u{64} - countl_zero(v - vec2x64u{1}));
         auto result = vec2x64u{1} << sh;
-        return result - set_bits(v == vec2x64u{0x00});
+        return result - broadcast_bit(v == vec2x64u{0x00});
         #endif
     };
 

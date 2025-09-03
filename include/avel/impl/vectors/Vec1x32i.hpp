@@ -16,7 +16,7 @@ namespace avel {
     //=====================================================
 
     div_type<vec1x32i> div(vec1x32i x, vec1x32i y);
-    vec1x32i set_bits(mask1x32i m);
+    vec1x32i broadcast_bit(mask1x32i m);
     vec1x32i blend(mask1x32i m, vec1x32i a, vec1x32i b);
     vec1x32i negate(mask1x32i m, vec1x32i x);
 
@@ -161,6 +161,21 @@ namespace avel {
     //=====================================================
     // Mask functions
     //=====================================================
+
+    [[nodiscard]]
+    AVEL_FINL mask1x32i keep(mask1x32i m, mask1x32i v) {
+        return mask1x32i{keep(mask1x32u{m}, mask1x32u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x32i clear(mask1x32i m, mask1x32i v) {
+        return mask1x32i{clear(mask1x32u{m}, mask1x32u{v})};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x32i blend(mask1x32i m, mask1x32i a, mask1x32i b) {
+        return mask1x32i{blend(decay(m), decay(a), decay(b))};
+    }
 
     [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask1x32i m) {
@@ -485,7 +500,7 @@ namespace avel {
     }
 
     [[nodiscard]]
-    AVEL_FINL vec1x32i set_bits(mask1x32i m) {
+    AVEL_FINL vec1x32i broadcast_bit(mask1x32i m) {
         return vec1x32i{static_cast<vec1x32i::scalar>(-decay(m))};
     }
 

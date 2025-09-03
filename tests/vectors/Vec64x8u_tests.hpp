@@ -342,6 +342,65 @@ namespace avel_tests {
     // Mask functions
     //=====================================================
 
+    TEST(Mask64x8u, Keep_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr64xb>();
+            auto inputs1 = random_array<arr64xb>();
+
+            mask64x8u v0{inputs0};
+            mask64x8u v1{inputs1};
+
+            auto results = avel::keep(v0, v1);
+
+            arr64xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::keep(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask64x8u{expected});
+        }
+    }
+
+    TEST(Mask64x8u, Clear_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr64xb>();
+            auto inputs1 = random_array<arr64xb>();
+
+            mask64x8u v0{inputs0};
+            mask64x8u v1{inputs1};
+
+            auto results = avel::clear(v0, v1);
+
+            arr64xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::clear(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask64x8u{expected});
+        }
+    }
+
+    TEST(Mask64x8u, Blend_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr64xb>();
+            auto inputs1 = random_array<arr64xb>();
+            auto inputs2 = random_array<arr64xb>();
+
+            mask64x8u v0{inputs0};
+            mask64x8u v1{inputs1};
+            mask64x8u v2{inputs2};
+
+            auto results = avel::blend(v0, v1, v2);
+
+            arr64xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::blend(inputs0[j], inputs1[j], inputs2[j]);
+            }
+
+            EXPECT_TRUE(results == mask64x8u{expected});
+        }
+    }
+
     TEST(Mask64x8u, Count_random) {
         for (std::size_t i = 0; i < iterations; ++i) {
             auto inputs = random_array<arr64xb>();
@@ -1737,13 +1796,13 @@ namespace avel_tests {
         }
     }
 
-    TEST(Vec64x8u, Set_bits_random) {
+    TEST(Vec64x8u, broadcast_bit_random) {
         for (std::size_t i = 0; i < iterations; ++i) {
             auto inputs = random_array<arr64xb>();
 
             mask64x8u v{inputs};
 
-            auto results = set_bits(v);
+            auto results = broadcast_bit(v);
 
             arr64x8u expected{};
             for (std::size_t j = 0; j < inputs.size(); ++j) {

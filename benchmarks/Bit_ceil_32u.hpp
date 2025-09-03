@@ -129,7 +129,7 @@ namespace avel::benchmarks::bit_ceil_32u {
         v |= bit_shift_right<16>(v);
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
     }
 
     auto vec4x32u_bitwise = vector_test_bench<vec4x32u, vec4x32u_bitwise_impl>;
@@ -172,7 +172,7 @@ namespace avel::benchmarks::bit_ceil_32u {
         v |= bit_shift_right<16>(v);
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
     }
 
     auto vec8x32u_bitwise = vector_test_bench<vec8x32u, vec8x32u_bitwise_impl>;
@@ -215,7 +215,7 @@ namespace avel::benchmarks::bit_ceil_32u {
         v |= bit_shift_right<16>(v);
         ++v;
 
-        return v - set_bits(zero_mask);
+        return v - broadcast_bit(zero_mask);
     }
 
     auto vec16x32u_bitwise = vector_test_bench<vec16x32u, vec16x32u_bitwise_impl>;

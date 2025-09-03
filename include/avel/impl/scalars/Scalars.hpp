@@ -6,7 +6,7 @@
 namespace avel {
 
     template<class T>
-    T set_bits(bool m);
+    T broadcast_bit(bool m);
 
 }
 
@@ -29,6 +29,8 @@ namespace avel {
 
 #include "Scalar32f.hpp"
 #include "Scalar64f.hpp"
+
+#include "Scalarb.hpp"
 
 namespace avel {
 

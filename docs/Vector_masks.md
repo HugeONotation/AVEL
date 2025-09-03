@@ -63,6 +63,9 @@
     native intrinsics
 
 ### Free Mask Functions
+`std::uint32_t blender(mask m, mask a, mask b)`
+* for each lane, return `a` if `m` is true, and return `b` is `m` is false
+
 `std::uint32_t count(mask m)`
 * return the number of set lanes in the `m`
 

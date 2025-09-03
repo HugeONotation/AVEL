@@ -280,6 +280,54 @@ namespace avel {
     //=====================================================
 
     [[nodiscard]]
+    AVEL_FINL mask4x32f keep(mask4x32f m, mask4x32f v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask4x32f{static_cast<mask4x32f::primitive>(decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask4x32f{_mm_and_ps(decay(m), decay(v))};
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask4x32f{vbslq_f32(decay(m), decay(v), vdupq_n_f32(0.0f))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32f clear(mask4x32f m, mask4x32f v) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask4x32f{static_cast<mask4x32f::primitive>(~decay(m) & decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask4x32f{_mm_andnot_ps(decay(m), decay(v))};
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask4x32f{vbslq_f32(decay(m), vdupq_n_f32(0.0f), decay(v))};
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32f blend(mask4x32f m, mask4x32f a, mask4x32f b) {
+        #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
+        return mask4x32f{static_cast<mask4x32f::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask4x32f{_mm_blendv_ps(decay(b), decay(a), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        auto x = _mm_andnot_ps(decay(m), decay(b));
+        auto y = _mm_and_ps(decay(m), decay(a));
+        return mask4x32f{_mm_or_ps(x, y)};
+
+        #endif
+
+        #if defined(AVEL_NEON)
+        return mask4x32f{vbslq_f32(decay(m), decay(a), decay(b))};
+        #endif
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask4x32f m) {
         #if defined(AVEL_AVX512VL) || defined(AVEL_AVX10_1)
         return popcount(decay(m));
@@ -1709,10 +1757,10 @@ namespace avel {
         // The first constant is the bit pattern for 1.0f
         // When the following two constants are reinterpreted as float, their sum is 2^24
         auto one_bits = _mm_set1_epi32(0x3f800000);
-        auto offset_bits = _mm_set1_epi32(0xC000000);
+        auto offbroadcast_bit = _mm_set1_epi32(0xC000000);
 
         // Make v normal if it's subnormal
-        auto multiplier_bits = _mm_add_epi32(one_bits, _mm_and_si128(is_subnormal, offset_bits));
+        auto multiplier_bits = _mm_add_epi32(one_bits, _mm_and_si128(is_subnormal, offbroadcast_bit));
         auto multiplier = _mm_castsi128_ps(multiplier_bits);
         auto v_corrected = _mm_mul_ps(decay(v), multiplier);
         auto v_corrected_bits = _mm_castps_si128(v_corrected);
@@ -1754,10 +1802,10 @@ namespace avel {
         // The first constant is the bit pattern for 1.0f
         // When the following two constants are reinterpreted as float, their sum is 2^24
         auto one_bits = vdupq_n_s32(0x3f800000);
-        auto offset_bits = vdupq_n_s32(0xC000000);
+        auto offbroadcast_bit = vdupq_n_s32(0xC000000);
 
         // Make v normal if it's subnormal
-        auto multiplier_bits = vaddq_s32(one_bits, vandq_s32(is_subnormal, offset_bits));
+        auto multiplier_bits = vaddq_s32(one_bits, vandq_s32(is_subnormal, offbroadcast_bit));
         auto multiplier = vreinterpretq_f32_s32(multiplier_bits);
         auto v_corrected = vmulq_f32(decay(v), multiplier);
         auto v_corrected_bits = vreinterpretq_s32_f32(v_corrected);

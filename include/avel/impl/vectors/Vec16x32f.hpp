@@ -166,14 +166,32 @@ namespace avel {
     // Mask functions
     //=====================================================
 
+    [[nodiscard]]
+    AVEL_FINL mask16x32f keep(mask16x32f m, mask16x32f v) {
+        return mask16x32f{static_cast<mask16x32f::primitive>(decay(m) & decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask16x32f clear(mask16x32f m, mask16x32f v) {
+        return mask16x32f{static_cast<mask16x32f::primitive>(~decay(m) & decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask16x32f blend(mask16x32f m, mask16x32f a, mask16x32f b) {
+        return mask16x32f{static_cast<mask16x32f::primitive>((decay(m) & decay(a)) | (~decay(m) & decay(b)))};
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::uint32_t count(mask16x32f m) {
         return avel::popcount(decay(m));
     }
 
+    [[nodiscard]]
     AVEL_FINL bool any(mask16x32f m) {
         return decay(m);
     }
 
+    [[nodiscard]]
     AVEL_FINL bool all(mask16x32f m) {
         return 0xFFFF == decay(m);
     }
