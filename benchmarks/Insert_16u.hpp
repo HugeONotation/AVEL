@@ -1,0 +1,4 @@
+#ifndef AVEL_INSERT_16U_HPP
+#define AVEL_INSERT_16U_HPP
+
+#endif //AVEL_INSERT_16U_HPP

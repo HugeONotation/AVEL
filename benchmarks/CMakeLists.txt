@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.16)
 
 
 add_executable(AVEL_benchmarks
@@ -85,7 +85,7 @@ add_executable(AVEL_benchmarks
 target_link_libraries(AVEL_benchmarks PRIVATE AVEL benchmark benchmark_main)
 target_include_directories(AVEL_benchmarks PRIVATE ./)
 target_compile_features(AVEL_benchmarks PRIVATE cxx_std_20)
-target_compile_options(AVEL_benchmarks PRIVATE "-march=native")
+target_compile_options(AVEL_benchmarks PRIVATE)
 target_link_options(AVEL_benchmarks PRIVATE "")
 
 

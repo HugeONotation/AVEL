@@ -1,0 +1,4 @@
+#ifndef REDUCE_ADD_64U_HPP
+#define REDUCE_ADD_64U_HPP
+
+#endif //REDUCE_ADD_64U_HPP

@@ -1,0 +1,4 @@
+#ifndef BIT_FLOOR_64U_HPP
+#define BIT_FLOOR_64U_HPP
+
+#endif //BIT_FLOOR_64U_HPP

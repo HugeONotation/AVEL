@@ -65,7 +65,7 @@ namespace avel::benchmarks::mul_8u {
 
 
 
-    #if defined(AVEL_AVX2)
+    #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)
 
     vec16x8u vec16x8u_pmullw_widening_emulation_impl(vec16x8u v, vec16x8u w) {
         auto a = _mm256_cvtepu8_epi16(decay(v));

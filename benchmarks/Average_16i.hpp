@@ -1,0 +1,4 @@
+#ifndef AVERAGE_16I_HPP
+#define AVERAGE_16I_HPP
+
+#endif //AVERAGE_16I_HPP

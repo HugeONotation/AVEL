@@ -7,7 +7,7 @@ namespace avel::benchmarks::byteswap_16u {
     // scalar 16u benchmarks
     //=====================================================
 
-    #if __cplusplus >= 202002L
+    #if __cplusplus >= 202302L
 
     std::uint16_t scalar_native_impl(std::uint16_t x) {
         return std::byteswap(x);
@@ -198,7 +198,7 @@ namespace avel::benchmarks::byteswap_16u {
 
 
 
-    #if defined(AVEL_AVX512VBMI2)
+    #if defined(AVEL_AVX512BW) & defined(AVEL_AVX512VBMI2)
 
     vec32x16u vec32x16u_concat_shift_impl(vec32x16u v) {
         return vec32x16u{_mm512_shldi_epi16(decay(v), decay(v), 0x8)};

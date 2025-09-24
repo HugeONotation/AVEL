@@ -7,7 +7,7 @@ namespace avel::benchmarks::byteswap_64u {
     // scalar 64u benchmarks
     //=====================================================
 
-    #if __cplusplus >= 202002L
+    #if __cplusplus >= 202302L
 
     std::uint64_t scalar_native_impl(std::uint64_t x) {
         return std::byteswap(x);
@@ -125,7 +125,7 @@ namespace avel::benchmarks::byteswap_64u {
 
 
 
-    #if defined(AVEL_SSSE3)
+    #if defined(AVEL_AVX2)
 
     vec4x64u vec4x64u_pshufb_impl(vec4x64u v) {
         alignas(32) static constexpr std::uint8_t index_data[32] {
@@ -176,25 +176,9 @@ namespace avel::benchmarks::byteswap_64u {
     // vec8x64u benchmarks
     //=====================================================
 
-    #if defined(AVEL_AVX512F)
+    //TODO: Create AVX512F implementation
 
-    vec8x64u vec8x16u_shuffle_shift_impl(vec8x64u v) {
-        auto t0 = _mm512_shufflelo_epi16(decay(v), 0xB1);
-        auto t1 = _mm512_shufflehi_epi16(t0, 0xB1);
-        auto t2 = _mm512_slli_epi16(t1, 0x8);
-        auto t3 = _mm512_srli_epi16(t1, 0x8);
-        return vec8x64u{_mm512_or_si512(t2, t3)};
-    }
-
-    auto vec8x64u_shuffle_shift = vector_test_bench<vec8x64u, vec8x16u_shuffle_shift_impl>;
-
-    BENCHMARK(byteswap_64u::vec8x64u_shuffle_shift);
-
-    #endif
-
-
-
-    #if defined(AVEL_AVX512F)
+    #if defined(AVEL_AVX512BW)
 
     vec8x64u vec8x64u_pshufb_impl(vec8x64u v) {
         alignas(64) static constexpr std::uint8_t index_data[64] {
@@ -223,6 +207,24 @@ namespace avel::benchmarks::byteswap_64u {
     auto vec8x64u_pshufb = vector_test_bench<vec8x64u, vec8x64u_pshufb_impl>;
 
     BENCHMARK(byteswap_64u::vec8x64u_pshufb);
+
+    #endif
+
+
+
+    #if defined(AVEL_AVX512BW)
+
+    vec8x64u vec8x16u_shuffle_shift_impl(vec8x64u v) {
+        auto t0 = _mm512_shufflelo_epi16(decay(v), 0xB1);
+        auto t1 = _mm512_shufflehi_epi16(t0, 0xB1);
+        auto t2 = _mm512_slli_epi16(t1, 0x8);
+        auto t3 = _mm512_srli_epi16(t1, 0x8);
+        return vec8x64u{_mm512_or_si512(t2, t3)};
+    }
+
+    auto vec8x64u_shuffle_shift = vector_test_bench<vec8x64u, vec8x16u_shuffle_shift_impl>;
+
+    BENCHMARK(byteswap_64u::vec8x64u_shuffle_shift);
 
     #endif
 

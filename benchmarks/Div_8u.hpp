@@ -226,8 +226,8 @@ namespace avel::benchmarks::div_8u {
         __m128i quot_q2 = _mm_cvttps_epi32(_mm_div_ps(_mm_castsi128_ps(x2), _mm_castsi128_ps(y_q2)));
         __m128i quot_q3 = _mm_cvttps_epi32(_mm_div_ps(_mm_castsi128_ps(x3), _mm_castsi128_ps(y_q3)));
 
-        __m128i quot_h0 = _mm_packus_epi32(quot_q0, quot_q1);
-        __m128i quot_h1 = _mm_packus_epi32(quot_q2, quot_q3);
+        __m128i quot_h0 = _mm_packs_epi32(quot_q0, quot_q1);
+        __m128i quot_h1 = _mm_packs_epi32(quot_q2, quot_q3);
 
         __m128i quot = _mm_packus_epi16(quot_h0, quot_h1);
         return vec16x8u{quot};
@@ -269,8 +269,8 @@ namespace avel::benchmarks::div_8u {
         __m128i quot_q2 = _mm_cvttps_epi32(_mm_div_ps(_mm_cvtepi32_ps(x_q2), _mm_cvtepi32_ps(y_q2)));
         __m128i quot_q3 = _mm_cvttps_epi32(_mm_div_ps(_mm_cvtepi32_ps(x_q3), _mm_cvtepi32_ps(y_q3)));
 
-        __m128i quot_h0 = _mm_packus_epi32(quot_q0, quot_q1);
-        __m128i quot_h1 = _mm_packus_epi32(quot_q2, quot_q3);
+        __m128i quot_h0 = _mm_packs_epi32(quot_q0, quot_q1);
+        __m128i quot_h1 = _mm_packs_epi32(quot_q2, quot_q3);
 
         __m128i quot = _mm_packus_epi16(quot_h0, quot_h1);
         return vec16x8u{quot};

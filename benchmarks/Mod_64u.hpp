@@ -1,0 +1,4 @@
+#ifndef AVEL_MOD_64U_HPP
+#define AVEL_MOD_64U_HPP
+
+#endif //AVEL_MOD_64U_HPP

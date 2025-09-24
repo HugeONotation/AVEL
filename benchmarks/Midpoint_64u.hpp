@@ -1,0 +1,4 @@
+#ifndef MIDPOINT_64U_HPP
+#define MIDPOINT_64U_HPP
+
+#endif //MIDPOINT_64U_HPP

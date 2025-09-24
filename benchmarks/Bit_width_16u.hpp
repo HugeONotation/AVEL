@@ -1,0 +1,4 @@
+#ifndef BIT_WIDTH_16U_HPP
+#define BIT_WIDTH_16U_HPP
+
+#endif //BIT_WIDTH_16U_HPP

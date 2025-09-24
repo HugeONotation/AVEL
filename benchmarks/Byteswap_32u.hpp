@@ -7,7 +7,7 @@ namespace avel::benchmarks::byteswap_32u {
     // scalar 32u benchmarks
     //=====================================================
 
-    #if __cplusplus >= 202002L
+    #if __cplusplus >= 202302L
 
     std::uint32_t scalar_native_impl(std::uint32_t x) {
         return std::byteswap(x);
@@ -167,6 +167,39 @@ namespace avel::benchmarks::byteswap_32u {
 
     #if defined(AVEL_AVX512F)
 
+    vec16x32u vec16x32u_256_shuffle_impl(vec16x32u v) {
+        alignas(32) static constexpr std::uint8_t index_data[32] {
+            3,   2,  1,  0,
+            7,   6,  5,  4,
+            11, 10,  9,  8,
+            15, 14, 13, 12,
+            3,   2,  1,  0,
+            7,   6,  5,  4,
+            11, 10,  9,  8,
+            15, 14, 13, 12
+        };
+
+        auto indices = _mm256_load_si256(reinterpret_cast<const __m256i*>(index_data));
+
+        auto lo = _mm512_extracti64x4_epi64(decay(v), 0x0);
+        auto hi = _mm512_extracti64x4_epi64(decay(v), 0x1);
+
+        auto ret_lo = _mm256_shuffle_epi8(lo, indices);
+        auto ret_hi = _mm256_shuffle_epi8(hi, indices);
+
+        auto ret = _mm512_castsi256_si512(ret_lo);
+        ret = _mm512_inserti64x4(ret, ret_hi, 0x1);
+        return vec16x32u{ret};
+    }
+
+    auto vec16x32u_256_shuffle = vector_test_bench<vec16x32u, vec16x32u_256_shuffle_impl>;
+
+    BENCHMARK(byteswap_32u::vec16x32u_256_shuffle);
+
+    #endif
+
+    #if defined(AVEL_AVX512BW)
+
     vec16x32u vec16x32u_shuffle_shift_impl(vec16x32u v) {
         auto t0 = _mm512_shufflelo_epi16(decay(v), 0xB1);
         auto t1 = _mm512_shufflehi_epi16(t0, 0xB1);
@@ -183,7 +216,7 @@ namespace avel::benchmarks::byteswap_32u {
 
 
 
-    #if defined(AVEL_AVX512F)
+    #if defined(AVEL_AVX512BW)
 
     vec16x32u vec16x32u_pshufb_impl(vec16x32u v) {
         alignas(64) static constexpr std::uint8_t index_data[64] {

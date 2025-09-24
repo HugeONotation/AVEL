@@ -1,0 +1,4 @@
+#ifndef COUNTR_ONE_32U_HPP
+#define COUNTR_ONE_32U_HPP
+
+#endif //COUNTR_ONE_32U_HPP

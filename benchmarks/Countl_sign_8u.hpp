@@ -1,0 +1,4 @@
+#ifndef COUNTL_SIGN_8U_HPP
+#define COUNTL_SIGN_8U_HPP
+
+#endif //COUNTL_SIGN_8U_HPP

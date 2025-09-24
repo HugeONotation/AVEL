@@ -1,0 +1,4 @@
+#ifndef AVERAGE_64I_HPP
+#define AVERAGE_64I_HPP
+
+#endif //AVERAGE_64I_HPP

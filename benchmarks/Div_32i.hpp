@@ -1,0 +1,4 @@
+#ifndef AVEL_DIV_32I_HPP
+#define AVEL_DIV_32I_HPP
+
+#endif //AVEL_DIV_32I_HPP

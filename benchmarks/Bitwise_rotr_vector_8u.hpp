@@ -1,0 +1,4 @@
+#ifndef BITWISE_ROTR_8U_HPP
+#define BITWISE_ROTR_8U_HPP
+
+#endif //BITWISE_ROTR_8U_HPP

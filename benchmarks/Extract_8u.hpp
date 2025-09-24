@@ -1,0 +1,4 @@
+#ifndef AVEL_EXTRACT_8U_HPP
+#define AVEL_EXTRACT_8U_HPP
+
+#endif //AVEL_EXTRACT_8U_HPP

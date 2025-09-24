@@ -1,0 +1,4 @@
+#ifndef AVEL_MULHI_8I_HPP
+#define AVEL_MULHI_8I_HPP
+
+#endif //AVEL_MULHI_8I_HPP

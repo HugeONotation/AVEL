@@ -501,7 +501,7 @@ def run_benchmarks_on_compiler(config: BuildConfiguration):
     variable_assignments = config.variable_assignments
 
     # Create string for CMake macros and compiler flags
-    flags = '-w -std=c++11'
+    flags = '-w -std=c++23'
     cmake_variables = ''
 
     for variable, value in variable_assignments.items():
@@ -526,7 +526,6 @@ def run_benchmarks_on_compiler(config: BuildConfiguration):
         'cmake ' \
         '-S"./" ' \
         '-B{} ' \
-        '-G"CodeBlocks - Unix Makefiles" ' \
         '-DCMAKE_BUILD_TYPE=Release ' \
         '-DCMAKE_CXX_COMPILER={} ' \
         '-DAVEL_BUILD_BENCHMARKS:BOOL=ON{} ' \

@@ -1,0 +1,4 @@
+#ifndef COUNTR_ZERO_8U_HPP
+#define COUNTR_ZERO_8U_HPP
+
+#endif //COUNTR_ZERO_8U_HPP

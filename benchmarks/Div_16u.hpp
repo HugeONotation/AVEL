@@ -53,35 +53,7 @@ namespace avel::benchmarks::div_16u {
 
 
 
-    #if defined(AVEL_SSE2)
-
-    vec8x16u vec8x16u_32f_div_subnormal_unpacking_impl(vec8x16u x, vec8x16u y) {
-        __m128i x_raw = decay(x);
-
-        __m128i x_lo = _mm_unpacklo_epi16(x_raw, _mm_setzero_si128());
-        __m128i x_hi = _mm_unpackhi_epi16(x_raw, _mm_setzero_si128());
-
-        __m128i y_raw = decay(y);
-
-        __m128i y_lo = _mm_unpacklo_epi16(y_raw, _mm_setzero_si128());
-        __m128i y_hi = _mm_unpackhi_epi16(y_raw, _mm_setzero_si128());
-
-        __m128i quot_q0 = _mm_cvttps_epi32(_mm_div_ps(_mm_castsi128_ps(x_lo), _mm_castsi128_ps(y_lo)));
-        __m128i quot_q1 = _mm_cvttps_epi32(_mm_div_ps(_mm_castsi128_ps(x_hi), _mm_castsi128_ps(y_hi)));
-
-        __m128i quot = _mm_packus_epi32(quot_q0, quot_q1);
-        return vec8x16u{quot};
-    }
-
-    auto vec8x16u_32f_div_subnormal_unpacking = vector_division_test_bench<vec8x16u, vec8x16u_32f_div_subnormal_unpacking_impl>;
-
-    BENCHMARK(div_16u::vec8x16u_32f_div_subnormal_unpacking);
-
-    #endif
-
-
-
-    #if defined(AVEL_SSE2)
+    #if defined(AVEL_SSE4_1)
 
     vec8x16u vec8x16u_32f_div_normal_unpacking_impl(vec8x16u x, vec8x16u y) {
         __m128i x_raw = decay(x);
@@ -105,6 +77,34 @@ namespace avel::benchmarks::div_16u {
     auto vec8x16u_32f_div_normal_unpacking = vector_division_test_bench<vec8x16u, vec8x16u_32f_div_normal_unpacking_impl>;
 
     BENCHMARK(div_16u::vec8x16u_32f_div_normal_unpacking);
+
+    #endif
+
+
+
+    #if defined(AVEL_SSE4_1)
+
+    vec8x16u vec8x16u_32f_div_subnormal_unpacking_impl(vec8x16u x, vec8x16u y) {
+        __m128i x_raw = decay(x);
+
+        __m128i x_lo = _mm_unpacklo_epi16(x_raw, _mm_setzero_si128());
+        __m128i x_hi = _mm_unpackhi_epi16(x_raw, _mm_setzero_si128());
+
+        __m128i y_raw = decay(y);
+
+        __m128i y_lo = _mm_unpacklo_epi16(y_raw, _mm_setzero_si128());
+        __m128i y_hi = _mm_unpackhi_epi16(y_raw, _mm_setzero_si128());
+
+        __m128i quot_q0 = _mm_cvttps_epi32(_mm_div_ps(_mm_castsi128_ps(x_lo), _mm_castsi128_ps(y_lo)));
+        __m128i quot_q1 = _mm_cvttps_epi32(_mm_div_ps(_mm_castsi128_ps(x_hi), _mm_castsi128_ps(y_hi)));
+
+        __m128i quot = _mm_packus_epi32(quot_q0, quot_q1);
+        return vec8x16u{quot};
+    }
+
+    auto vec8x16u_32f_div_subnormal_unpacking = vector_division_test_bench<vec8x16u, vec8x16u_32f_div_subnormal_unpacking_impl>;
+
+    BENCHMARK(div_16u::vec8x16u_32f_div_subnormal_unpacking);
 
     #endif
 

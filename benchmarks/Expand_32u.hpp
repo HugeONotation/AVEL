@@ -1,0 +1,4 @@
+#ifndef AVEL_EXPAND_32U_HPP
+#define AVEL_EXPAND_32U_HPP
+
+#endif //AVEL_EXPAND_32U_HPP

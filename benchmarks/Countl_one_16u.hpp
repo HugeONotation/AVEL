@@ -1,0 +1,4 @@
+#ifndef COUNTL_ONE_16U_HPP
+#define COUNTL_ONE_16U_HPP
+
+#endif //COUNTL_ONE_16U_HPP

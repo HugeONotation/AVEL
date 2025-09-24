@@ -51,7 +51,7 @@ namespace avel::benchmarks::bitwise_and_8u {
     // vec8x64u benchmarks
     //=====================================================
 
-    #if defined(AVEL_AVX512F)
+    #if defined(AVEL_AVX512BW)
 
     vec64x8u vec64x8u_vpandd_impl(vec64x8u x, vec64x8u y) {
         return vec64x8u{_mm512_and_si512(decay(x), decay(y))};
