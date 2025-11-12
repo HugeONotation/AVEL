@@ -827,26 +827,37 @@ namespace avel {
             #if defined(AVEL_AVX2)
             content = _mm_sllv_epi32(content, rhs.content);
 
+            #elif defined(AVEL_SSE4_1)
+            __m128i exp = _mm_add_epi32(decay(rhs), _mm_set1_epi32(127));
+            __m128i exp_field = _mm_slli_epi32(exp, 23);
+            __m128i pow2 = _mm_cvtps_epi32(_mm_castsi128_ps(exp_field));
+
+            __m128i mask = _mm_srai_epi32(_mm_slli_epi32(decay(rhs), 26), 32);
+            __m128i content_masked = _mm_andnot_si128(mask, content);
+
+            content = _mm_mullo_epi32(content_masked, pow2);
+
             #elif defined(AVEL_SSE2)
-            auto zeros = _mm_setzero_si128();
+            __m128i exp = _mm_add_epi32(decay(rhs), _mm_set1_epi32(127));
+            __m128i exp_field = _mm_slli_epi32(exp, 23);
+            __m128i pow2 = _mm_cvtps_epi32(_mm_castsi128_ps(exp_field));
 
-            auto x_half0 = _mm_unpacklo_epi32(content, zeros);
-            auto x_half1 = _mm_unpackhi_epi32(content, zeros);
+            __m128i mask = _mm_srai_epi32(_mm_slli_epi32(decay(rhs), 26), 32);
+            __m128i content_masked = _mm_andnot_si128(mask, content);
 
-            auto y_half0 = _mm_unpacklo_epi32(decay(rhs), zeros);
-            auto y_half1 = _mm_unpackhi_epi32(decay(rhs), zeros);
+            auto lhs_lo = content_masked;
+            auto lhs_hi = _mm_srli_epi64(content_masked, 32);
 
-            auto X0 = _mm_sll_epi32(x_half0, y_half0);
-            auto X1 = _mm_sll_epi32(x_half0, _mm_srli_si128(y_half0, 8));
-            auto X2 = _mm_sll_epi32(x_half1, y_half1);
-            auto X3 = _mm_sll_epi32(x_half1, _mm_srli_si128(y_half1, 8));
+            auto rhs_lo = pow2;
+            auto rhs_hi = _mm_srli_epi64(pow2, 32);
 
-            auto t0 = _mm_unpacklo_epi64(X0, X2);
-            auto t1 = _mm_unpackhi_epi64(X1, X3);
+            auto lo = _mm_mul_epu32(lhs_lo, rhs_lo);
+            auto hi = _mm_mul_epu32(lhs_hi, rhs_hi);
 
-            auto t2 = _mm_slli_si128(t1, 0x4);
+            auto half0 = _mm_unpacklo_epi32(lo, hi);
+            auto half1 = _mm_unpackhi_epi32(lo, hi);
 
-            content = _mm_or_si128(t0, t2);
+            content = _mm_unpacklo_epi64(half0, half1);
 
             #endif
 
@@ -862,25 +873,25 @@ namespace avel {
             content = _mm_srlv_epi32(content, rhs.content);
 
             #elif defined(AVEL_SSE2)
-            auto zeros = _mm_setzero_si128();
+            __m128i exp = _mm_sub_epi32(_mm_set1_epi32(158), decay(rhs));
+            __m128i pow2 = _mm_cvtps_epi32(_mm_castsi128_ps(_mm_slli_epi32(exp, 23)));
 
-            auto x_half0 = _mm_unpacklo_epi32(content, zeros);
-            auto x_half1 = _mm_unpackhi_epi32(content, zeros);
+            auto lhs_lo = content;
+            auto lhs_hi = _mm_srli_epi64(content, 32);
 
-            auto y_half0 = _mm_unpacklo_epi32(decay(rhs), zeros);
-            auto y_half1 = _mm_unpackhi_epi32(decay(rhs), zeros);
+            auto rhs_lo = pow2;
+            auto rhs_hi = _mm_srli_epi64(pow2, 32);
 
-            auto X0 = _mm_srl_epi32(x_half0, y_half0);
-            auto X1 = _mm_srl_epi32(x_half0, _mm_srli_si128(y_half0, 8));
-            auto X2 = _mm_srl_epi32(x_half1, y_half1);
-            auto X3 = _mm_srl_epi32(x_half1, _mm_srli_si128(y_half1, 8));
+            auto lo = _mm_mul_epu32(lhs_lo, rhs_lo);
+            auto hi = _mm_mul_epu32(lhs_hi, rhs_hi);
 
-            auto t0 = _mm_unpacklo_epi64(X0, X2);
-            auto t1 = _mm_unpackhi_epi64(X1, X3);
+            auto lo_shifted = _mm_srli_epi64(lo, 31);
+            auto hi_shifted = _mm_srli_epi64(hi, 31);
 
-            auto t2 = _mm_slli_si128(t1, 0x4);
+            auto half0 = _mm_unpacklo_epi32(lo_shifted, hi_shifted);
+            auto half1 = _mm_unpackhi_epi32(lo_shifted, hi_shifted);
 
-            content = _mm_or_si128(t0, t2);
+            content = _mm_unpacklo_epi64(half0, half1);
 
             #endif
 
