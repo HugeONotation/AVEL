@@ -355,6 +355,10 @@ namespace avel {
         #if defined(AVEL_NEON) && defined(AVEL_AARCH64)
         auto ret = vmaxvq_u32(vreinterpretq_u32_u64(decay(m))) != 0x00;
         return ret;
+
+        #elif defined(AVEL_NEON)
+        //TODO: Implement
+
         #endif
     }
 
@@ -371,6 +375,10 @@ namespace avel {
         auto lane0 = vgetq_lane_u32(vreinterpretq_u32_u64(decay(m)), 0);
         auto lane1 = vgetq_lane_u32(vreinterpretq_u32_u64(decay(m)), 2);
         return lane0 & lane1;
+
+        #elif defined(AVEL_NEON)
+        //TODO: Implement
+
         #endif
     }
 
@@ -1405,7 +1413,8 @@ namespace avel {
 
         auto is_integral = _mm_cmple_pd(_mm_set1_pd(4503599627370496.0), decay(abs_v));
         auto is_nan = _mm_cmpunord_pd(decay(abs_v), decay(abs_v));
-        auto is_output_self = _mm_or_pd(is_integral, is_nan);
+        auto is_zero = _mm_cmpeq_pd(_mm_setzero_pd(), decay(v));
+        auto is_output_self = _mm_or_pd(_mm_or_pd(is_integral, is_nan), is_zero);
 
         auto converted0 = _mm_cvttsd_si64(decay(v));
         auto converted1 = _mm_cvttsd_si64(_mm_shuffle_pd(decay(v), decay(v), 0x3));
@@ -1425,6 +1434,9 @@ namespace avel {
         #if defined(AVEL_NEON) && (defined(AVEL_AARCH32) || defined(AVEL_AARCH64))
         return vec2x64f{vrndpq_f64(decay(v))};
 
+        #elif defined(AVEL_NEON)
+        //TODO: Implement
+
         #endif
     }
 
@@ -1438,7 +1450,8 @@ namespace avel {
 
         auto is_integral = _mm_cmple_pd(_mm_set1_pd(4503599627370496.0), decay(abs_v));
         auto is_nan = _mm_cmpunord_pd(decay(abs_v), decay(abs_v));
-        auto is_output_self = _mm_or_pd(is_integral, is_nan);
+        auto is_zero = _mm_cmpeq_pd(_mm_setzero_pd(), decay(v));
+        auto is_output_self = _mm_or_pd(_mm_or_pd(is_integral, is_nan), is_zero);
 
         auto converted0 = _mm_cvttsd_si64(decay(v));
         auto converted1 = _mm_cvttsd_si64(_mm_shuffle_pd(decay(v), decay(v), 0x3));
@@ -1457,6 +1470,9 @@ namespace avel {
 
         #if defined(AVEL_NEON) && (defined(AVEL_AARCH32) || defined(AVEL_AARCH64))
         return vec2x64f{vrndmq_f64(decay(v))};
+
+        #elif defined(AVEL_NEON)
+        //TODO: Implement
 
         #endif
     }
@@ -1504,6 +1520,9 @@ namespace avel {
         #if defined(AVEL_NEON) && (defined(AVEL_AARCH32) || defined(AVEL_AARCH64))
         return vec2x64f{vrndq_f64(decay(v))};
 
+        #elif defined(AVEL_NEON)
+        //TODO: Implement
+
         #endif
     }
 
@@ -1523,6 +1542,9 @@ namespace avel {
 
         #if defined(AVEL_NEON) && (defined(AVEL_AARCH32) || defined(AVEL_AARCH64))
         return vec2x64f{vrndaq_f64(decay(v))};
+
+        #elif defined(AVEL_NEON)
+        //TODO: Implement
 
         #endif
     }
@@ -1566,6 +1588,9 @@ namespace avel {
 
         #if defined(AVEL_NEON) && (defined(AVEL_AARCH32) || defined(AVEL_AARCH64))
         return vec2x64f{vrndiq_f64(decay(v))};
+
+        #elif defined(AVEL_NEON)
+        //TODO: Implement
 
         #endif
     }
@@ -1734,6 +1759,16 @@ namespace avel {
         *iptr = whole_reg;
 
         return vec2x64f{frac};
+
+        #endif
+
+
+
+        #if defined(AVEL_AARCH64)
+        return vec2x64f{};
+
+        #elif defined(AVEL_NEON)
+        return vec2x64f{};
 
         #endif
     }
