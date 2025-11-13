@@ -620,11 +620,18 @@ namespace avel {
         AVEL_FINL friend mask operator<=(Vector lhs, Vector rhs) {
             #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)) || defined(AVEL_AVX10_1)
             return mask{_mm_cmple_epu16_mask(lhs.content, rhs.content)};
+
             #elif defined(AVEL_SSE4_1)
             auto mins = _mm_min_epu16(decay(lhs), decay(rhs));
             return mask{_mm_cmpeq_epi16(mins, decay(lhs))};
+
             #elif defined(AVEL_SSE2)
-            return !mask{lhs > rhs};
+            __m128i zero = _mm_setzero_si128();
+            __m128i diff = _mm_subs_epu16(decay(lhs), decay(rhs));
+            __m128i result = _mm_cmpeq_epi16(diff, zero);
+
+            return mask{result};
+
             #endif
 
             #if defined(AVEL_NEON)
@@ -660,7 +667,11 @@ namespace avel {
             return mask{_mm_cmpeq_epi16(mins, decay(rhs))};
 
             #elif defined(AVEL_SSE2)
-            return !mask{lhs < rhs};
+            __m128i zero = _mm_setzero_si128();
+            __m128i diff = _mm_subs_epu16(decay(rhs), decay(lhs));
+            __m128i result = _mm_cmpeq_epi16(diff, zero);
+
+            return mask{result};
 
             #endif
 
