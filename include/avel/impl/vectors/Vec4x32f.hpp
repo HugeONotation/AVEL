@@ -1462,7 +1462,8 @@ namespace avel {
         return vec4x32f{vsqrtq_f32(decay(x))};
 
         #elif defined(AVEL_NEON)
-        //TODO: Utilize software emulation
+        //TODO: Utilize software emulation using fixed-point arithmetic
+        // Can current rounding mode be assume dot be towards nearest?
         #endif
     }
 
@@ -1476,20 +1477,28 @@ namespace avel {
         return vec4x32f{_mm_round_ps(decay(v), _MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC)};
 
         #elif defined(AVEL_SSE2)
-        auto abs_v = abs(v);
+        //TODO: Consider methods for further optimization
+        auto abs_v = avel::abs(v);
+        __m128i abs_v_bits = _mm_castps_si128(decay(abs_v));
 
-        //TODO: Optimize checks
-        auto is_integral = _mm_cmple_ps(_mm_set1_ps(8388608.0f), decay(abs_v));
-        auto is_nan = _mm_cmpunord_ps(decay(abs_v), decay(abs_v));
-        auto is_output_self = _mm_or_ps(is_integral, is_nan);
+        // NaNs, infinities, and values with exponents that guarantee that they're integers should all be returned unmodified
+        auto is_large_enough_to_be_identity = _mm_cmpgt_epi32(abs_v_bits, _mm_set1_epi32(0x4b000000 - 1));
 
+        // Zeroes should be returned unmodified
+        auto is_zero = _mm_cmpeq_epi32(_mm_setzero_si128(), abs_v_bits);
+
+        auto is_output_self = _mm_or_si128(is_zero, is_large_enough_to_be_identity);
+
+        // Compute truncated result
         auto converted = _mm_cvttps_epi32(decay(v));
         auto reconstructed = _mm_cvtepi32_ps(converted);
 
+        //TODO: Consider alternative approach using integer comparisons
         auto is_reconstruction_smaller = _mm_cmplt_ps(reconstructed, decay(v));
-        auto corrected_result = _mm_add_ps(reconstructed, _mm_and_ps(is_reconstruction_smaller, _mm_set1_ps(1.0f)));
+        auto ones = _mm_set1_ps(1.0f);
+        auto corrected_result = _mm_add_ps(reconstructed, _mm_and_ps(is_reconstruction_smaller, ones));
 
-        return blend(mask4x32f{is_output_self}, v, vec4x32f{corrected_result});
+        return blend(mask4x32f{_mm_castsi128_ps(is_output_self)}, v, vec4x32f{corrected_result});
 
         #endif
 
@@ -1497,11 +1506,16 @@ namespace avel {
         return vec4x32f{vrndpq_f32(decay(v))};
 
         #elif defined(AVEL_NEON)
-        auto abs_v = abs(v);
+        auto abs_v = avel::abs(v);
+        __m128i abs_v_bits = _mm_castps_si128(decay(abs_v));
 
-        auto is_integral = vec4x32f{8388608.0f} < abs_v;
-        auto is_nan = isnan(abs_v);
-        auto is_output_self = is_integral | is_nan;
+        // NaNs, infinities, and values with exponents that guarantee that they're integers should all be returned unmodified
+        auto is_large_enough_to_be_identity = _mm_cmpgt_epi32(abs_v_bits, _mm_set1_epi32(0x4b000000 - 1));
+
+        // Zeroes should be returned unmodified
+        auto is_zero = _mm_cmpeq_epi32(_mm_setzero_si128(), abs_v_bits);
+
+        auto is_output_self = _mm_castsi128_ps(_mm_or_si128(is_zero, is_large_enough_to_be_identity));
 
         auto converted = vcvtq_s32_f32(decay(v));
         auto reconstructed = vec4x32f{vcvtq_f32_s32(converted)};
@@ -1519,12 +1533,17 @@ namespace avel {
         return vec4x32f{_mm_round_ps(decay(v), _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC)};
 
         #elif defined(AVEL_SSE2)
-        auto abs_v = abs(v);
+        //TODO: Consider methods for further optimization
+        auto abs_v = avel::abs(v);
+        __m128i abs_v_bits = _mm_castps_si128(decay(abs_v));
 
-        //TODO: Optimize checks
-        auto is_integral = _mm_cmple_ps(_mm_set1_ps(8388608.0f), decay(abs_v));
-        auto is_nan = _mm_cmpunord_ps(decay(abs_v), decay(abs_v));
-        auto is_output_self = _mm_or_ps(is_integral, is_nan);
+        // NaNs, infinities, and values with exponents that guarantee that they're integers should all be returned unmodified
+        auto is_large_enough_to_be_identity = _mm_cmpgt_epi32(abs_v_bits, _mm_set1_epi32(0x4b000000 - 1));
+
+        // Zeroes should be returned unmodified
+        auto is_zero = _mm_cmpeq_epi32(_mm_setzero_si128(), abs_v_bits);
+
+        auto is_output_self = _mm_castsi128_ps(_mm_or_si128(is_zero, is_large_enough_to_be_identity));
 
         auto converted = _mm_cvttps_epi32(decay(v));
         auto reconstructed = _mm_cvtepi32_ps(converted);
@@ -1891,6 +1910,16 @@ namespace avel {
 
         // Necessary for negative infinities
         return avel::copysign(vec4x32f{fractional}, num);
+
+        #endif
+
+
+
+        #if defined(AVEL_AARCH64)
+        return vec4x32f{};
+
+        #elif defined(AVEL_NEON)
+        return vec4x32f{};
 
         #endif
     }

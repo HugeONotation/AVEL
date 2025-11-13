@@ -1913,13 +1913,15 @@ namespace avel_tests {
     //=====================================================
 
     TEST(Vec16x32f, ceil_edge_cases) {
-        vec16x32f zero{0.0};
+        vec16x32f pos_zero{+0.0};
+        vec16x32f neg_zero{-0.0};
         vec16x32f nan{NAN};
         vec16x32f pos_inf{+INFINITY};
         vec16x32f neg_inf{-INFINITY};
 
+        EXPECT_TRUE(avel::compare_common_bytes(pos_zero, avel::ceil(pos_zero)));
+        EXPECT_TRUE(avel::compare_common_bytes(neg_zero, avel::ceil(neg_zero)));
         EXPECT_TRUE(all(avel::isnan(avel::ceil(nan))));
-        EXPECT_TRUE(all(zero == avel::ceil(zero)));
         EXPECT_TRUE(all(pos_inf == avel::ceil(pos_inf)));
         EXPECT_TRUE(all(neg_inf == avel::ceil(neg_inf)));
     }
@@ -1942,13 +1944,15 @@ namespace avel_tests {
     }
 
     TEST(Vec16x32f, floor_edge_cases) {
-        vec16x32f zero{0.0};
+        vec16x32f pos_zero{+0.0};
+        vec16x32f neg_zero{-0.0};
         vec16x32f nan{NAN};
         vec16x32f pos_inf{+INFINITY};
         vec16x32f neg_inf{-INFINITY};
 
+        EXPECT_TRUE(avel::compare_common_bytes(pos_zero, avel::floor(pos_zero)));
+        EXPECT_TRUE(avel::compare_common_bytes(neg_zero, avel::floor(neg_zero)));
         EXPECT_TRUE(all(avel::isnan(avel::floor(nan))));
-        EXPECT_TRUE(all(zero == avel::floor(zero)));
         EXPECT_TRUE(all(pos_inf == avel::floor(pos_inf)));
         EXPECT_TRUE(all(neg_inf == avel::floor(neg_inf)));
     }
