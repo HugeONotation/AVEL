@@ -89,6 +89,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL double negate(bool m, double x) {
+        //TODO: Manual approach?
         if (m) {
             return -x;
         } else {
@@ -112,6 +113,84 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL double fmax(double a, double b) {
+        #if defined(AVEL_AVX512DQ) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vrangesd $5, %[y], %[x], %[x]"
+            : // Outputs
+            [x] "+x"(a)
+            : // Inputs
+            [y] "x"(b)
+        );
+
+        return a;
+
+        #elif defined(AVEL_AVX) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        double scratch_x;
+        double scratch_y;
+
+        __asm__(
+            "vmaxsd    %[b], %[a], %[x] \n"
+            "vxorps    %[y], %[y], %[y] \n"
+            "vcmpsd     $3, %[y], %[b], %[b]\n"
+            "vblendvpd %[b], %[a], %[x], %[a]\n"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #elif defined(AVEL_SSE4_1) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        double scratch_x;
+        double scratch_y;
+
+        register double a_input asm("xmm0") = a;
+
+        __asm__(
+            "movaps   %%xmm0, %[x]\n"
+            "movaps   %%xmm0, %[y]\n"
+            "maxsd    %[b], %[y]\n"
+            "xorps    %%xmm0, %%xmm0\n"
+            "cmpsd    $3, %[b], %%xmm0\n"
+            "blendvpd %%xmm0, %[x], %[y]"
+
+            : // Outputs
+            [a] "+x"(a_input),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return scratch_y;
+
+        #elif defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        __asm__(
+            "movaps  %[a], %[x]\n"
+            "movaps  %[a], %[y]\n"
+            "maxsd   %[b], %[y]\n"
+            "cmpsd   $3, %[b], %[b] \n"
+            "movaps   %[b], %[a]\n"
+            "andps    %[x], %[b]\n"
+            "andnps   %[y], %[a]\n"
+            "orps     %[b], %[a]"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #else
         if (avel::isnan(a)) {
             return b;
         }
@@ -120,15 +199,95 @@ namespace avel {
             return a;
         }
 
-        if (a < b) {
-            return b;
-        } else {
+        if (a > b) {
             return a;
+        } else {
+            return b;
         }
+
+        #endif
     }
 
     [[nodiscard]]
     AVEL_FINL double fmin(double a, double b) {
+        #if defined(AVEL_AVX512DQ) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vrangesd $4, %[y], %[x], %[x]"
+            : // Outputs
+            [x] "+x"(a)
+            : // Inputs
+            [y] "x"(b)
+        );
+
+        return a;
+
+        #elif defined(AVEL_AVX) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        double scratch_x;
+        double scratch_y;
+
+        __asm__(
+            "vminsd    %[b], %[a], %[x] \n"
+            "vxorps    %[y], %[y], %[y] \n"
+            "vcmpsd     $3, %[y], %[b], %[b]\n"
+            "vblendvpd %[b], %[a], %[x], %[a]\n"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #elif defined(AVEL_SSE4_1) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        double scratch_x;
+        double scratch_y;
+
+        register double a_input asm("xmm0") = a;
+
+        __asm__(
+            "movaps   %%xmm0, %[x]\n"
+            "movaps   %%xmm0, %[y]\n"
+            "minsd    %[b], %[y]\n"
+            "xorps    %%xmm0, %%xmm0\n"
+            "cmpsd    $3, %[b], %%xmm0\n"
+            "blendvpd %%xmm0, %[x], %[y]"
+
+            : // Outputs
+            [a] "+x"(a_input),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return scratch_y;
+
+        #elif defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        __asm__(
+            "movaps  %[a], %[x]\n"
+            "movaps  %[a], %[y]\n"
+            "minsd   %[b], %[y]\n"
+            "cmpsd   $3, %[b], %[b] \n"
+            "movaps   %[b], %[a]\n"
+            "andps    %[x], %[b]\n"
+            "andnps   %[y], %[a]\n"
+            "orps     %[b], %[a]"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #else
         if (avel::isnan(a)) {
             return b;
         }
@@ -142,6 +301,8 @@ namespace avel {
         } else {
             return b;
         }
+
+        #endif
     }
 
     [[nodiscard]]
@@ -173,6 +334,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL double frac(double x) {
+        //TODO: Consider lower-level implementation
         if ((x == 0.0) || (x != x)) {
             return x;
         }
@@ -199,31 +361,37 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL double ceil(double arg) {
+        //TODO: Consider lower-level implementation
         return std::ceil(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL double floor(double arg) {
+        //TODO: Consider lower-level implementation
         return std::floor(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL double trunc(double arg) {
+        //TODO: Consider lower-level implementation
         return std::trunc(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL double round(double arg) {
+        //TODO: Consider lower-level implementation
         return std::round(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL double nearbyint(double arg) {
+        //TODO: Consider lower-level implementation
         return std::nearbyint(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL double rint(double arg) {
+        //TODO: Consider lower-level implementation
         return std::rint(arg);
     }
 
@@ -233,6 +401,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL double frexp(double arg, std::int64_t* exp) {
+        //TODO: Consider lower-level implementation
         std::int32_t e;
         auto ret = std::frexp(arg, &e);
         *exp = e;
@@ -241,13 +410,14 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL double ldexp(double arg, std::int64_t exp) {
+        //TODO: Consider lower-level implementation
         exp = avel::clamp(exp, std::int64_t(INT_MIN), std::int64_t(INT_MAX));
         return std::ldexp(arg, exp);
     }
 
     [[nodiscard]]
     AVEL_FINL double modf(double num, double* iptr) {
-        //TODO: Consider custom implementation
+        //TODO: Consider lower-level implementation
         return std::modf(num, iptr);
     }
 
@@ -258,6 +428,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::int64_t ilogb(double arg) {
+        //TODO: Consider lower-level implementation
         return static_cast<std::int64_t>(std::ilogb(arg));
     }
 
@@ -268,7 +439,54 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL double copysign(double mag, double sgn) {
-        return std::copysign(mag, sgn);
+        #if defined(AVEL_AVX512F) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vpternlogq $228, %[m], %[y], %[x]\n"
+            : // Outputs
+            [x] "+x"(mag)
+            : // Inputs
+            [y] "x"(sgn),
+            [m] "x"(avel::bit_cast<double>(0x7fffffffffffffff))
+        );
+
+        return mag;
+
+        #elif defined(AVEL_AVX) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vpand %[m], %[x], %[x]\n"
+            "vpandn %[y], %[m], %[m]\n"
+            "vpor %[m], %[x], %[x]\n"
+            : // Outputs
+            [x] "+x"(mag)
+            : // Inputs
+            [y] "x"(sgn),
+            [m] "x"(avel::bit_cast<double>(0x7fffffffffffffff))
+        );
+
+        return mag;
+
+        #elif defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "pand %[m], %[x]\n"
+            "pandn %[y], %[m]\n"
+            "por %[m], %[x]\n"
+            : // Outputs
+            [x] "+x"(mag),
+            [y] "+x"(sgn)
+            : // Inputs
+            [m] "x"(avel::bit_cast<double>(0x7fffffffffffffff))
+        );
+
+        return mag;
+
+        #else
+        auto mag_bits = avel::bit_cast<std::uint64_t>(mag);
+        auto sgn_bits = avel::bit_cast<std::uint64_t>(sgn);
+
+        mag_bits ^= (sgn_bits ^ mag_bits) & 0x8000000000000000ull;
+        return avel::bit_cast<double>(mag_bits);
+
+        #endif
     }
 
     //=====================================================
@@ -277,64 +495,57 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::int64_t fpclassify(double arg) {
-        return std::fpclassify(arg);
+        //TODO: Consider lower-level implementation
+        std::uint64_t arg_bits = avel::bit_cast<std::uint64_t>(arg);
+        std::uint64_t bits2 = arg_bits + arg_bits;
 
-        std::int64_t bits = bit_cast<std::int64_t>(arg);
-
-        if (0x00000000 == bits || 0x8000000000000000ull == bits) {
+        if (bits2 == 0x0000000000000000) {
             return FP_ZERO;
         }
 
-        std::int64_t exp = bits >> 52 & 0x7FF;
-        if (exp == 0x00) {
+        if (bits2 < 0x20000000000000) {
             return FP_SUBNORMAL;
         }
 
-        if (exp == 0xFF) {
-            std::int64_t mantissa = 0x0000ffffffffffffful;
-            if (bits & mantissa) {
-                return FP_NAN;
-            } else {
-                return FP_INFINITE;
-            }
+        if (bits2 < 0xffe0000000000000) {
+            return FP_NORMAL;
         }
 
-        return FP_NORMAL;
+        if (bits2 == 0xffe0000000000000) {
+            return FP_INFINITE;
+        }
+
+        return FP_NAN;
     }
 
     [[nodiscard]]
     AVEL_FINL bool isfinite(double arg) {
-        std::int64_t tmp = bit_cast<std::int64_t>(arg);
-        std::int64_t exp = tmp >> 52 & 0x7FF;
-        return (exp != 2047);
+        std::uint64_t arg_bits = avel::bit_cast<std::uint64_t>(arg);
+        std::uint64_t abs_arg = arg_bits & 0x7fffffffffffffff;
+        return abs_arg < 0x7ff0000000000000;
     }
 
     [[nodiscard]]
     AVEL_FINL bool isinf(double arg) {
-        std::int64_t tmp = bit_cast<std::int64_t>(arg);
-        std::int64_t exp = tmp >> 52 & 0x7FF;
-        return (exp == 2047) && !(tmp & 0x0000ffffffffffffful);
+        std::uint64_t arg_bits = avel::bit_cast<std::uint64_t>(arg);
+        return (arg_bits == 0x7ff0000000000000) | (arg_bits == 0xfff0000000000000);
     }
 
     [[nodiscard]]
     AVEL_FINL bool isnan(double arg) {
-        std::int64_t tmp = bit_cast<std::int64_t>(arg);
-        std::int64_t exp = tmp >> 52 & 0x7FF;
-        return (exp == 2047) && (tmp & 0x0000ffffffffffffful);
+        return arg != arg;
     }
-
 
     [[nodiscard]]
     AVEL_FINL bool isnormal(double arg) {
-        std::int64_t tmp = bit_cast<std::int64_t>(arg);
-        std::int64_t exp = tmp >> 52 & 0x7FF;
-
-        return (exp != 0x00) && (exp != 2047);
+        std::uint64_t arg_bits = avel::bit_cast<std::uint64_t>(arg);
+        std::uint64_t arg_bits2 = arg_bits + arg_bits;
+        return (0x20000000000000 <= arg_bits2) & (arg_bits2 < 0xffe0000000000000);
     }
 
     [[nodiscard]]
     AVEL_FINL bool signbit(double arg) {
-        return bit_cast<std::int64_t>(arg) & 0x8000000000000000ull;
+        return avel::bit_cast<std::int64_t>(arg) & 0x8000000000000000ull;
     }
 
     //=====================================================

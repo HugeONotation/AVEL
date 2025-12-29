@@ -188,7 +188,7 @@ AVEL will offer the following aliases:
 | `vec1x64i`   | `vec2x64i`    |
 
 Those in the left column are always offered by AVEL and correspond to 
-processing data in a vector fashion. Those in the right colum correspond to 
+processing data in a scalar fashion. Those in the right colum correspond to 
 populating an 128-bit vector with as many elements of the specified type as 
 possible.
 

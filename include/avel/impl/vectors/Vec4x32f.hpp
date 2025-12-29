@@ -1005,7 +1005,8 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL vec4x32f abs(vec4x32f v) {
         #if defined(AVEL_SSE2)
-        return vec4x32f{_mm_andnot_ps(_mm_set1_ps(float_sign_bit_mask), decay(v))};
+        __m128 sign_bit_mask_vector = _mm_set1_ps(float_sign_bit_mask);
+        return vec4x32f{_mm_andnot_ps(sign_bit_mask_vector, decay(v))};
         #endif
 
         #if defined(AVEL_NEON)
@@ -1016,7 +1017,8 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL vec4x32f neg_abs(vec4x32f v) {
         #if defined(AVEL_SSE2)
-        return vec4x32f{_mm_or_ps(_mm_set1_ps(float_sign_bit_mask), decay(v))};
+        __m128 sign_bit_mask_vector = _mm_set1_ps(float_sign_bit_mask);
+        return vec4x32f{_mm_or_ps(sign_bit_mask_vector, decay(v))};
         #endif
 
         #if defined(AVEL_NEON)
@@ -1916,9 +1918,11 @@ namespace avel {
 
 
         #if defined(AVEL_AARCH64)
+        //TODO: Implement
         return vec4x32f{};
 
         #elif defined(AVEL_NEON)
+        //TODO: Implement
         return vec4x32f{};
 
         #endif
@@ -2115,6 +2119,8 @@ namespace avel {
 
         return ret;
         #endif
+
+
 
         #if defined(AVEL_NEON)
         //TODO: No denormal handling necessary on ARMv7

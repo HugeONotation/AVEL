@@ -1,7 +1,12 @@
 #ifndef AVEL_SCALAR32f_HPP
 #define AVEL_SCALAR32f_HPP
 
+#include <math.h>
+
 namespace avel {
+
+    template<class T>
+    class Denominator;
 
     //=====================================================
     // Forward declarations
@@ -21,6 +26,9 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL bool isinf(float arg);
+
+    [[nodiscard]]
+    AVEL_FINL bool isunordered(float x, float y);
 
     //=====================================================
     // General vector operations
@@ -92,6 +100,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float negate(bool m, float x) {
+        //TODO: Manual approach?
         if (m) {
             return -x;
         } else {
@@ -101,12 +110,40 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float abs(float x) {
+        #if defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "pslld $1, %[x]\n"
+            "psrld $1, %[x]"
+            : // Outputs
+            [x] "+x"(x)
+            : // Inputs
+        );
+
+        return x;
+
+        #else
         return bit_cast<float>(bit_cast<std::int32_t>(x) & 0x7fffffff);
+
+        #endif
     }
 
     [[nodiscard]]
     AVEL_FINL float neg_abs(float x) {
+        #if defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "orps %[y], %[x]"
+            : // Outputs
+            [x] "+x"(x)
+            : // Inputs
+            [y] "x"(-0.0f)
+        );
+
+        return x;
+
+        #else
         return bit_cast<float>(bit_cast<std::int32_t>(x) | 0x80000000);
+
+        #endif
     }
 
     //=====================================================
@@ -115,6 +152,84 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float fmax(float a, float b) {
+        #if defined(AVEL_AVX512DQ) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vrangess $5, %[y], %[x], %[x]"
+            : // Outputs
+            [x] "+x"(a)
+            : // Inputs
+            [y] "x"(b)
+        );
+
+        return a;
+
+        #elif defined(AVEL_AVX) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        __asm__(
+            "vmaxss    %[b], %[a], %[x] \n"
+            "vxorps    %[y], %[y], %[y] \n"
+            "vcmpss     $3, %[y], %[b], %[b]\n"
+            "vblendvps %[b], %[a], %[x], %[a]\n"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #elif defined(AVEL_SSE4_1) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        register float a_input asm("xmm0") = a;
+
+        __asm__(
+            "movaps   %%xmm0, %[x]\n"
+            "movaps   %%xmm0, %[y]\n"
+            "maxss    %[b], %[y]\n"
+            "xorps    %%xmm0, %%xmm0\n"
+            "cmpss    $3, %[b], %%xmm0\n"
+            "blendvps %%xmm0, %[x], %[y]"
+
+            : // Outputs
+            [a] "+x"(a_input),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return scratch_y;
+
+        #elif defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        __asm__(
+            "movaps  %[a], %[x]\n"
+            "movaps  %[a], %[y]\n"
+            "maxss   %[b], %[y]\n"
+            "cmpss   $3, %[b], %[b] \n"
+            "movaps   %[b], %[a]\n"
+            "andps    %[x], %[b]\n"
+            "andnps   %[y], %[a]\n"
+            "orps     %[b], %[a]"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #else
         if (avel::isnan(a)) {
             return b;
         }
@@ -123,15 +238,95 @@ namespace avel {
             return a;
         }
 
-        if (a < b) {
-            return b;
-        } else {
+        if (a > b) {
             return a;
+        } else {
+            return b;
         }
+
+        #endif
     }
 
     [[nodiscard]]
     AVEL_FINL float fmin(float a, float b) {
+        #if defined(AVEL_AVX512DQ) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vrangess $4, %[y], %[x], %[x]"
+            : // Outputs
+            [x] "+x"(a)
+            : // Inputs
+            [y] "x"(b)
+        );
+
+        return a;
+
+        #elif defined(AVEL_AVX) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        __asm__(
+            "vminss    %[b], %[a], %[x] \n"
+            "vxorps    %[y], %[y], %[y] \n"
+            "vcmpss     $3, %[y], %[b], %[b]\n"
+            "vblendvps %[b], %[a], %[x], %[a]\n"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #elif defined(AVEL_SSE4_1) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        register float a_input asm("xmm0") = a;
+
+        __asm__(
+            "movaps   %%xmm0, %[x]\n"
+            "movaps   %%xmm0, %[y]\n"
+            "minss    %[b], %[y]\n"
+            "xorps    %%xmm0, %%xmm0\n"
+            "cmpss    $3, %[b], %%xmm0\n"
+            "blendvps %%xmm0, %[x], %[y]"
+
+            : // Outputs
+            [a] "+x"(a_input),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return scratch_y;
+
+        #elif defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        float scratch_x;
+        float scratch_y;
+
+        __asm__(
+            "movaps  %[a], %[x]\n"
+            "movaps  %[a], %[y]\n"
+            "minss   %[b], %[y]\n"
+            "cmpss   $3, %[b], %[b] \n"
+            "movaps   %[b], %[a]\n"
+            "andps    %[x], %[b]\n"
+            "andnps   %[y], %[a]\n"
+            "orps     %[b], %[a]"
+            : // Outputs
+            [a] "+x"(a),
+            [b] "+x"(b),
+            [x] "+x"(scratch_x),
+            [y] "+x"(scratch_y)
+            : // Inputs
+        );
+
+        return a;
+
+        #else
         if (avel::isnan(a)) {
             return b;
         }
@@ -145,6 +340,8 @@ namespace avel {
         } else {
             return b;
         }
+
+        #endif
     }
 
     [[nodiscard]]
@@ -155,10 +352,109 @@ namespace avel {
     [[nodiscard]]
     AVEL_FINL float fmod(float x, float y) {
         return std::fmod(x, y);
+
+        /*
+        if (avel::isunordered(x, y) | avel::isinf(x) | y == 0.0f) {
+            return NAN;
+        }
+
+        if (avel::isinf(y) | (avel::abs(x) < avel::abs(y))) {
+            return x;
+        }
+
+        // Decompose x into denominator representation
+        std::uint32_t x_bits     = avel::bit_cast<std::uint32_t>(x) & 0x7fffffff;
+        std::uint32_t x_sig_bits = avel::bit_cast<std::uint32_t>(x) & 0x007fffff;
+
+        std::int32_t r_exp = 0;
+        std::uint64_t r_sig = 0;
+
+        if (x_bits >= 0x800000) [[likely]] {
+            //Handle decomposing normal x
+            r_sig = std::uint64_t(x_sig_bits | 0x800000) << (32 + 8);
+            r_exp = (x_bits >> 23) & 0xff;
+        } else {
+            //Handle decomposing subnormal x
+            auto lzcnt = avel::countl_zero(x_sig_bits);
+            r_sig = std::uint64_t(x_sig_bits) << (lzcnt + 32);
+            r_exp = 9 - lzcnt;
+        }
+
+        // Decompose y into representation of denominator
+        std::uint32_t y_bits     = avel::bit_cast<std::uint32_t>(y) & 0x7fffffff;
+        std::uint32_t y_sig_bits = avel::bit_cast<std::uint32_t>(y) & 0x007fffff;
+
+        std::int32_t d_exp = 0;
+        std::uint64_t d_sig = 0;
+
+        if (y_bits >= 0x800000) [[likely]] {
+            //Handle decomposing normal x
+            d_sig = std::uint64_t(y_sig_bits | 0x800000) << (32 + 8);
+            d_exp = (y_bits >> 23) & 0xff;
+        } else {
+            //Handle decomposing subnormal x
+            auto lzcnt = avel::countl_zero(y_sig_bits);
+            d_sig = std::uint64_t(y_sig_bits) << (lzcnt + 32);
+            d_exp = 9 - lzcnt;
+        }
+
+        const std::int64_t d_sig_tzcnt = avel::countr_zero(d_sig);
+        const std::int64_t threshold = d_sig_tzcnt + d_exp;
+        const std::uint64_t d_sig0 = d_sig >> d_sig_tzcnt;
+
+        avel::Denom64u d_denom{d_sig0};
+        while ((r_exp > threshold) & bool(r_sig)) {
+            std::uint64_t quotient = r_sig / d_denom;
+            std::uint64_t subtrahend = quotient * d_sig0;
+
+            r_sig -= subtrahend;
+
+            std::uint32_t lzcnt = avel::countl_zero(r_sig);
+            r_sig <<= lzcnt;
+            r_exp -= lzcnt;
+        }
+
+        if (r_exp > d_exp || (r_exp == d_exp && r_sig > d_sig)) {
+            std::uint32_t d_width = avel::bit_width(d_sig0);
+
+            std::uint32_t pos_offset = (64 - (r_exp - d_exp) - d_width);
+            d_denom <<= pos_offset;
+
+            std::uint64_t quotient = r_sig / d_denom;
+            std::uint64_t subtrahend = quotient * d_denom.value();
+
+            r_sig -= subtrahend;
+
+            std::uint32_t lzcnt = avel::countl_zero(r_sig);
+            r_sig <<= lzcnt;
+            r_exp -= lzcnt;
+        }
+
+        std::uint32_t result_bits = 0;
+
+        if (r_exp > 0) [[likely]] {
+            // Compose normal result
+            result_bits = (r_exp << 23) | ((r_sig >> (32 + 8)) & 0x07fffff);
+        } else {
+            // Compose subnormal result
+            result_bits = (r_sig >> (32 + 9 - r_exp));
+        }
+
+        if (r_sig == 0) {
+            result_bits = 0;
+        }
+
+        float result = avel::bit_cast<float>(result_bits);
+        float ret = std::copysign(result, x);
+        return ret;
+
+        //TODO: Test this
+        */
     }
 
     [[nodiscard]]
     AVEL_FINL float frac(float x) {
+        //TODO: Consider lower-level implementation
         if ((x == 0.0) || (x != x)) {
             return x;
         }
@@ -185,31 +481,37 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float ceil(float arg) {
+        //TODO: Consider lower-level implementation
         return std::ceil(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL float floor(float arg) {
+        //TODO: Consider lower-level implementation
         return std::floor(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL float trunc(float arg) {
+        //TODO: Consider lower-level implementation
         return std::trunc(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL float round(float arg) {
+        //TODO: Consider lower-level implementation
         return std::round(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL float nearbyint(float arg) {
+        //TODO: Consider lower-level implementation
         return std::nearbyint(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL float rint(float arg) {
+        //TODO: Consider lower-level implementation
         return std::rint(arg);
     }
 
@@ -219,6 +521,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float frexp(float arg, std::int32_t* exp) {
+        //TODO: Consider lower-level implementation
         return std::frexp(arg, exp);
         /*
         if (arg == 0.0) {
@@ -253,6 +556,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float ldexp(float arg, std::int32_t exp) {
+        //TODO: Consider lower-level implementation
         return std::ldexp(arg, exp);
 
         /*
@@ -274,7 +578,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float modf(float num, float* iptr) {
-        //TODO: Consider custom implementation
+        //TODO: Consider lower-level implementation
         return std::modf(num, iptr);
     }
 
@@ -285,6 +589,7 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::int32_t ilogb(float arg) {
+        //TODO: Consider lower-level implementation
         return std::ilogb(arg);
 
         /*
@@ -315,16 +620,60 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL float logb(float arg) {
+        //TODO: Manually implement
         return std::logb(arg);
     }
 
     [[nodiscard]]
     AVEL_FINL float copysign(float mag, float sgn) {
+        #if defined(AVEL_AVX512F) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vpternlogd $228, %[m], %[y], %[x]\n"
+            : // Outputs
+            [x] "+x"(mag)
+            : // Inputs
+            [y] "x"(sgn),
+            [m] "x"(avel::bit_cast<float>(0x7fffffff))
+        );
+
+        return mag;
+
+        #elif defined(AVEL_AVX) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "vpand %[m], %[x], %[x]\n"
+            "vpandn %[y], %[m], %[m]\n"
+            "vpor %[m], %[x], %[x]\n"
+            : // Outputs
+            [x] "+x"(mag)
+            : // Inputs
+            [y] "x"(sgn),
+            [m] "x"(avel::bit_cast<float>(0x7fffffff))
+        );
+
+        return mag;
+
+        #elif defined(AVEL_SSE2) && (defined(AVEL_GCC) || defined(AVEL_CLANG) || defined(AVEL_ICPX))
+        __asm__(
+            "pand %[m], %[x]\n"
+            "pandn %[y], %[m]\n"
+            "por %[m], %[x]\n"
+            : // Outputs
+            [x] "+x"(mag),
+            [y] "+x"(sgn)
+            : // Inputs
+            [m] "x"(avel::bit_cast<float>(0x7fffffff))
+        );
+
+        return mag;
+
+        #else
         auto mag_bits = avel::bit_cast<std::uint32_t>(mag);
         auto sgn_bits = avel::bit_cast<std::uint32_t>(sgn);
 
         mag_bits ^= (sgn_bits ^ mag_bits) & 0x80000000;
         return avel::bit_cast<float>(mag_bits);
+
+        #endif
     }
 
     //=====================================================
@@ -333,55 +682,52 @@ namespace avel {
 
     [[nodiscard]]
     AVEL_FINL std::int32_t fpclassify(float arg) {
-        std::int32_t bits = bit_cast<std::int32_t>(arg);
+        //TODO: Consider lower-level implementation
+        std::uint32_t bits = bit_cast<std::int32_t>(arg);
+        std::uint32_t bits2 = bits + bits;
 
-        if (0x00000000 == bits || 0x80000000 == bits) {
+        if (bits2 == 0x00000000) {
             return FP_ZERO;
         }
 
-        std::int32_t exp = bits >> 23 & 0xFF;
-        if (exp == 0x00) {
+        if (bits2 < 0x01000000) {
             return FP_SUBNORMAL;
         }
 
-        if (exp == 0xFF) {
-            std::int32_t mantissa = 0x007fffff;
-            if (bits & mantissa) {
-                return FP_NAN;
-            } else {
-                return FP_INFINITE;
-            }
+        if (bits2 < 0xff000000) {
+            return FP_NORMAL;
         }
 
-        return FP_NORMAL;
+        if (bits2 == 0xff000000) {
+            return FP_INFINITE;
+        }
+
+        return FP_NAN;
     }
 
     [[nodiscard]]
     AVEL_FINL bool isfinite(float arg) {
-        std::int32_t tmp = bit_cast<std::int32_t>(arg);
-        std::int32_t exp = tmp >> 23 & 0xFF;
-        return (exp != 255);
+        std::uint32_t arg_bits = bit_cast<std::uint32_t>(arg);
+        std::uint32_t abs_arg = arg_bits & 0x7fffffff;
+        return abs_arg < 0x7f800000;
     }
 
     [[nodiscard]]
     AVEL_FINL bool isinf(float arg) {
-        std::int32_t tmp = bit_cast<std::int32_t>(arg);
-        std::int32_t exp = tmp >> 23 & 0xFF;
-        return (exp == 255) && !(tmp & 0x007fffff);
+        std::uint32_t arg_bits = bit_cast<std::uint32_t>(arg);
+        return (arg_bits == 0x7f800000) | (arg_bits == 0xff800000);
     }
 
     [[nodiscard]]
     AVEL_FINL bool isnan(float arg) {
         return arg != arg;
-
-        //std::int32_t tmp = bit_cast<std::int32_t>(arg);
-        //std::int32_t exp = tmp >> 23 & 0xFF;
-        //return (exp == 255) && (tmp & 0x007fffff);
     }
 
     [[nodiscard]]
     AVEL_FINL bool isnormal(float arg) {
-        return std::isnormal(arg);
+        std::uint32_t arg_bits = avel::bit_cast<std::uint32_t>(arg);
+        std::uint32_t arg_bits2 = arg_bits + arg_bits;
+        return (0x1000000 <= arg_bits2) & (arg_bits2 < 0xff000000);
     }
 
     [[nodiscard]]
