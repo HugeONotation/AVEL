@@ -105,6 +105,45 @@ namespace avel {
     }
 
     [[nodiscard]]
+    AVEL_FINL bool no_bits(std::int32_t x) {
+        return no_bits(static_cast<std::uint32_t>(x));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool no_bits_of(std::int32_t x, std::int32_t m) {
+        return no_bits_of(
+            static_cast<std::uint32_t>(x),
+            static_cast<std::uint32_t>(m)
+        );
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool any_bits(std::int32_t x) {
+        return any_bits(static_cast<std::uint32_t>(x));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool any_bits_of(std::int32_t x, std::int32_t m) {
+        return any_bits_of(
+            static_cast<std::uint32_t>(x),
+            static_cast<std::uint32_t>(m)
+        );
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool all_bits(std::int32_t x) {
+        return all_bits(static_cast<std::uint32_t>(x));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool all_bits_of(std::int32_t x, std::int32_t m) {
+        return all_bits_of(
+            static_cast<std::uint32_t>(x),
+            static_cast<std::uint32_t>(m)
+        );
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::int32_t rotl(std::int32_t x, long long s) {
         return std::int32_t(rotl(std::uint32_t(x), s));
     }

@@ -1194,6 +1194,36 @@ namespace avel {
         #endif
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask8x64u no_bits(vec8x64u v) {
+        return mask8x64u{_mm512_testn_epi64_mask(decay(v), decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x64u no_bits_of(vec8x64u v, vec8x64u m) {
+        return mask8x64u{_mm512_testn_epi64_mask(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x64u any_bits(vec8x64u v) {
+        return mask8x64u{_mm512_test_epi64_mask(decay(v), decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x64u any_bits_of(vec8x64u v, vec8x64u m) {
+        return mask8x64u{_mm512_test_epi64_mask(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x64u all_bits(vec8x64u v) {
+        return mask8x64u{_mm512_cmpeq_epi64_mask(decay(v), _mm512_set1_epi64(-1))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x64u all_bits_of(vec8x64u v, vec8x64u m) {
+        return mask8x64u{_mm512_cmpeq_epi64_mask(_mm512_and_si512(decay(v), decay(m)), decay(m))};
+    }
+
 }
 
 #endif //AVEL_VEC8X64U_HPP

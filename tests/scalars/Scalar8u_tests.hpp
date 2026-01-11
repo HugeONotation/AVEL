@@ -229,7 +229,7 @@ namespace avel_tests {
 
     TEST(Scalar8u, Has_single_bit_edge_cases) {
         EXPECT_FALSE(has_single_bit(std::uint8_t(0x00)));
-        EXPECT_FALSE(has_single_bit(std::uint8_t(0xFF)));
+        EXPECT_FALSE(has_single_bit(std::uint8_t(0xff)));
     }
 
     TEST(Scalar8u, Has_single_bit_powers_of_two) {
@@ -237,6 +237,198 @@ namespace avel_tests {
             std::uint8_t x = std::uint8_t{1} << i;
 
             EXPECT_TRUE(has_single_bit(x));
+        }
+    }
+
+    //=====================================================
+    // Bit testing
+    //=====================================================
+
+    TEST(Scalar8u, No_bits_preselected) {
+        EXPECT_TRUE(avel::no_bits(std::uint8_t(0x00)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT; ++i) {
+            std::uint8_t x = std::uint8_t(1) << i;
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT - 1; ++i) {
+            std::uint8_t x = std::uint8_t(0xff) >> (sizeof(std::uint8_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+    }
+
+    TEST(Scalar8u, No_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::uint8_t x = random8u();
+
+            bool expected = (x == 0x00);
+            bool observed = avel::no_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar8u, No_bits_of_preselected) {
+        EXPECT_TRUE(avel::no_bits_of(std::uint8_t(0x00), std::uint8_t(0x00)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT; ++i) {
+            std::uint8_t x = std::uint8_t(1) << i;
+            EXPECT_TRUE(avel::no_bits_of(x, std::uint8_t{0x00}));
+        }
+
+        EXPECT_TRUE(avel::no_bits_of(std::uint8_t(0x00), std::uint8_t(0xff)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT - 1; ++i) {
+            std::uint8_t x = std::uint8_t(0xff) >> (sizeof(std::uint8_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits_of(x, std::uint8_t(0xff)));
+        }
+    }
+
+    TEST(Scalar8u, No_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::uint8_t x = random8u();
+            std::uint8_t m = random8u();
+
+            bool expected = true;
+            for (std::int32_t j = 0; j < sizeof(std::uint8_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::no_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar8u, Any_bits_preselected) {
+        EXPECT_FALSE(avel::any_bits(std::uint8_t(0x00)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT; ++i) {
+            std::uint8_t x = std::uint8_t(1) << i;
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT - 1; ++i) {
+            std::uint8_t x = std::uint8_t(0xff) >> (sizeof(std::uint8_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+    }
+
+    TEST(Scalar8u, Any_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::uint8_t x = random8u();
+
+            bool expected = (x != 0x00);
+            bool observed = avel::any_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar8u, Any_bits_of_preselected) {
+        EXPECT_FALSE(avel::any_bits_of(std::uint8_t(0x00), std::uint8_t(0x00)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT; ++i) {
+            std::uint8_t x = std::uint8_t(1) << i;
+            EXPECT_FALSE(avel::any_bits_of(x, std::uint8_t{0x00}));
+        }
+
+        EXPECT_FALSE(avel::any_bits_of(std::uint8_t(0x00), std::uint8_t(0xff)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT - 1; ++i) {
+            std::uint8_t x = std::uint8_t(0xff) >> (sizeof(std::uint8_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits_of(x, std::uint8_t(0xff)));
+        }
+    }
+
+    TEST(Scalar8u, Any_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::uint8_t x = random8u();
+            std::uint8_t m = random8u();
+
+            bool expected = false;
+            for (std::int32_t j = 0; j < sizeof(std::uint8_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected |= true;
+                }
+            }
+
+            bool observed = avel::any_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar8u, All_bits_preselected) {
+        EXPECT_FALSE(avel::all_bits(std::uint8_t(0x00)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT; ++i) {
+            std::uint8_t x = std::uint8_t(1) << i;
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT - 1; ++i) {
+            std::uint8_t x = std::uint8_t(0xff) >> (sizeof(std::uint8_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        EXPECT_TRUE(avel::all_bits(std::uint8_t(0xff)));
+    }
+
+    TEST(Scalar8u, All_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::uint8_t x = random8u();
+
+            bool expected = (x == 0xff);
+            bool observed = avel::all_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar8u, All_bits_of_preselected) {
+        EXPECT_TRUE(avel::all_bits_of(std::uint8_t(0x00), std::uint8_t(0x00)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT; ++i) {
+            std::uint8_t x = std::uint8_t(1) << i;
+            EXPECT_TRUE(avel::all_bits_of(x, std::uint8_t{0x00}));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint8_t) * CHAR_BIT - 1; ++i) {
+            std::uint8_t x = std::uint8_t(0xff) >> (sizeof(std::uint8_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits_of(x, std::uint8_t(0xff)));
+        }
+
+        EXPECT_TRUE(avel::all_bits_of(std::uint8_t(0xff), std::uint8_t(0xff)));
+    }
+
+    TEST(Scalar8u, All_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::uint8_t x = random8u();
+            std::uint8_t m = random8u();
+
+            bool expected = true;
+            for (std::int32_t j = 0; j < sizeof(std::uint8_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (!x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::all_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
         }
     }
 

@@ -2513,6 +2513,72 @@ namespace avel {
         #endif
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask8x16u no_bits(vec8x16u v) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)
+        return mask8x16u{_mm_testn_epi16_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask8x16u{_mm_cmpeq_epi16(decay(v), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x16u no_bits_of(vec8x16u v, vec8x16u m) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)
+        return mask8x16u{_mm_testn_epi16_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        return mask8x16u{_mm_cmpeq_epi16(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x16u any_bits(vec8x16u v) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)
+        return mask8x16u{_mm_test_epi16_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return !mask8x16u{_mm_cmpeq_epi16(decay(v), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x16u any_bits_of(vec8x16u v, vec8x16u m) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)
+        return mask8x16u{_mm_test_epi16_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        return !mask8x16u{_mm_cmpeq_epi16(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x16u all_bits(vec8x16u v) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)
+        return mask8x16u{_mm_cmpeq_epi16_mask(decay(v), _mm_set1_epi16(-1))};
+
+        #elif defined(AVEL_SSE2)
+        return mask8x16u{_mm_cmpeq_epi16(decay(v), _mm_set1_epi16(-1))};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x16u all_bits_of(vec8x16u v, vec8x16u m) {
+        #if defined(AVEL_AVX512VL) && defined(AVEL_AVX512BW)
+        return mask8x16u{_mm_cmpeq_epi16_mask(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        return mask8x16u{_mm_cmpeq_epi16(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #endif
+    }
+
 }
 
 #endif //AVEL_VEC8X16U_HPP

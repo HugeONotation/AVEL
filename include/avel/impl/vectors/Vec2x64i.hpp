@@ -1815,7 +1815,7 @@ namespace avel {
     }
 
     //=====================================================
-    // General vector operations
+    // Integer vector operations
     //=====================================================
 
     [[nodiscard]]

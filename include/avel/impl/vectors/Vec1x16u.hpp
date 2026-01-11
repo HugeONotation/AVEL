@@ -830,6 +830,36 @@ namespace avel {
         return mask1x16u{has_single_bit(decay(v))};
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask1x16u no_bits(vec1x16u v) {
+        return mask1x16u{no_bits(decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x16u no_bits_of(vec1x16u v, vec1x16u m) {
+        return mask1x16u{no_bits_of(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x16u any_bits(vec1x16u v) {
+        return mask1x16u{any_bits(decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x16u any_bits_of(vec1x16u v, vec1x16u m) {
+        return mask1x16u{any_bits_of(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x16u all_bits(vec1x16u v) {
+        return mask1x16u{all_bits(decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x16u all_bits_of(vec1x16u v, vec1x16u m) {
+        return mask1x16u{all_bits_of(decay(v), decay(m))};
+    }
+
     //=====================================================
     // Vector conversions
     //=====================================================

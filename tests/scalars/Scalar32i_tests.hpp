@@ -219,6 +219,198 @@ namespace avel_tests {
         }
     }
 
+    //=====================================================
+    // Bit testing
+    //=====================================================
+
+    TEST(Scalar32i, No_bits_preselected) {
+        EXPECT_TRUE(avel::no_bits(std::int32_t(0x00000000)));
+
+        for (std::int32_t i = 0; i < sizeof(std::int32_t) * CHAR_BIT; ++i) {
+            std::int32_t x = std::int32_t(1) << i;
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint32_t) * CHAR_BIT - 1; ++i) {
+            std::int32_t x = std::uint32_t(0xffffffff) >> (sizeof(std::uint32_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+    }
+
+    TEST(Scalar32i, No_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int32_t x = random32u();
+
+            bool expected = (x == 0x00000000);
+            bool observed = avel::no_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar32i, No_bits_of_preselected) {
+        EXPECT_TRUE(avel::no_bits_of(std::int32_t(0x00000000), std::int32_t(0x00000000)));
+
+        for (std::int32_t i = 0; i < sizeof(std::int32_t) * CHAR_BIT; ++i) {
+            std::int32_t x = std::int32_t(1) << i;
+            EXPECT_TRUE(avel::no_bits_of(x, std::int32_t(0x00000000)));
+        }
+
+        EXPECT_TRUE(avel::no_bits_of(std::int32_t(0x00000000), std::int32_t(0xffffffff)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint32_t) * CHAR_BIT - 1; ++i) {
+            std::int32_t x = std::uint32_t(0xffffffff) >> (sizeof(std::uint32_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits_of(x, std::int32_t(0xffffffff)));
+        }
+    }
+
+    TEST(Scalar32i, No_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int32_t x = random32u();
+            std::int32_t m = random32u();
+
+            bool expected = true;
+            for (std::int32_t j = 0; j < sizeof(std::int32_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::no_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar32i, Any_bits_preselected) {
+        EXPECT_FALSE(avel::any_bits(std::int32_t(0x00000000)));
+
+        for (std::int32_t i = 0; i < sizeof(std::int32_t) * CHAR_BIT; ++i) {
+            std::int32_t x = std::int32_t(1) << i;
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint32_t) * CHAR_BIT - 1; ++i) {
+            std::int32_t x = std::uint32_t(0xffffffff) >> (sizeof(std::uint32_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+    }
+
+    TEST(Scalar32i, Any_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int32_t x = random32u();
+
+            bool expected = (x != 0x00000000);
+            bool observed = avel::any_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar32i, Any_bits_of_preselected) {
+        EXPECT_FALSE(avel::any_bits_of(std::int32_t(0x00000000), std::int32_t(0x00000000)));
+
+        for (std::int32_t i = 0; i < sizeof(std::int32_t) * CHAR_BIT; ++i) {
+            std::int32_t x = std::int32_t(1) << i;
+            EXPECT_FALSE(avel::any_bits_of(x, std::int32_t(0x00000000)));
+        }
+
+        EXPECT_FALSE(avel::any_bits_of(std::int32_t(0x00000000), std::int32_t(0xffffffff)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint32_t) * CHAR_BIT - 1; ++i) {
+            std::int32_t x = std::uint32_t(0xffffffff) >> (sizeof(std::uint32_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits_of(x, std::int32_t(0xffffffff)));
+        }
+    }
+
+    TEST(Scalar32i, Any_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int32_t x = random32u();
+            std::int32_t m = random32u();
+
+            bool expected = false;
+            for (std::int32_t j = 0; j < sizeof(std::int32_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected |= true;
+                }
+            }
+
+            bool observed = avel::any_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar32i, All_bits_preselected) {
+        EXPECT_FALSE(avel::all_bits(std::int32_t(0x00000000)));
+
+        for (std::int32_t i = 0; i < sizeof(std::int32_t) * CHAR_BIT; ++i) {
+            std::int32_t x = std::int32_t(1) << i;
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint32_t) * CHAR_BIT - 1; ++i) {
+            std::int32_t x = std::uint32_t(0xffffffff) >> (sizeof(std::uint32_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        EXPECT_TRUE(avel::all_bits(std::int32_t(0xffffffff)));
+    }
+
+    TEST(Scalar32i, All_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int32_t x = random32u();
+
+            bool expected = (x == 0xffffffff);
+            bool observed = avel::all_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar32i, All_bits_of_preselected) {
+        EXPECT_TRUE(avel::all_bits_of(std::int32_t(0x00000000), std::int32_t(0x00000000)));
+
+        for (std::int32_t i = 0; i < sizeof(std::int32_t) * CHAR_BIT; ++i) {
+            std::int32_t x = std::int32_t(1) << i;
+            EXPECT_TRUE(avel::all_bits_of(x, std::int32_t(0x00000000)));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint32_t) * CHAR_BIT - 1; ++i) {
+            std::int32_t x = std::uint32_t(0xffffffff) >> (sizeof(std::uint32_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits_of(x, std::int32_t(0xffffffff)));
+        }
+
+        EXPECT_TRUE(avel::all_bits_of(std::int32_t(0xffffffff), std::int32_t(0xffffffff)));
+    }
+
+    TEST(Scalar32i, All_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int32_t x = random32u();
+            std::int32_t m = random32u();
+
+            bool expected = true;
+            for (std::int32_t j = 0; j < sizeof(std::int32_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (!x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::all_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
 }
 
 #endif //AVEL_SCALAR32I_TESTS_HPP

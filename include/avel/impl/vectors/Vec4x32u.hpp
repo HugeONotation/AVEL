@@ -2021,6 +2021,72 @@ namespace avel {
         #endif
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask4x32u no_bits(vec4x32u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x32u{_mm_testn_epi32_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return mask4x32u{_mm_cmpeq_epi32(decay(v), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u no_bits_of(vec4x32u v, vec4x32u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x32u{_mm_testn_epi32_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        return mask4x32u{_mm_cmpeq_epi32(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u any_bits(vec4x32u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x32u{_mm_test_epi32_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_SSE2)
+        return !mask4x32u{_mm_cmpeq_epi32(decay(v), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u any_bits_of(vec4x32u v, vec4x32u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x32u{_mm_test_epi32_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        return !mask4x32u{_mm_cmpeq_epi32(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u all_bits(vec4x32u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x32u{_mm_cmpeq_epi32_mask(decay(v), _mm_set1_epi32(-1))};
+
+        #else
+        return mask4x32u{_mm_cmpeq_epi32(decay(v), _mm_set1_epi32(-1))};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x32u all_bits_of(vec4x32u v, vec4x32u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x32u{_mm_cmpeq_epi32_mask(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #else
+        return mask4x32u{_mm_cmpeq_epi32(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #endif
+    }
+
 }
 
 #endif //AVEL_VEC4X32U_HPP

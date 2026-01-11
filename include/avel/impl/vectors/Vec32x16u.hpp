@@ -1097,6 +1097,36 @@ namespace avel {
         #endif
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask32x16u no_bits(vec32x16u v) {
+        return mask32x16u{_mm512_testn_epi16_mask(decay(v), decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u no_bits_of(vec32x16u v, vec32x16u m) {
+        return mask32x16u{_mm512_testn_epi16_mask(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u any_bits(vec32x16u v) {
+        return mask32x16u{_mm512_test_epi16_mask(decay(v), decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u any_bits_of(vec32x16u v, vec32x16u m) {
+        return mask32x16u{_mm512_test_epi16_mask(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u all_bits(vec32x16u v) {
+        return mask32x16u{_mm512_cmpeq_epi16_mask(decay(v), _mm512_set1_epi16(-1))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask32x16u all_bits_of(vec32x16u v, vec32x16u m) {
+        return mask32x16u{_mm512_cmpeq_epi16_mask(_mm512_and_si512(decay(v), decay(m)), decay(m))};
+    }
+
 }
 
 #endif //AVEL_VEC32X16_HPP

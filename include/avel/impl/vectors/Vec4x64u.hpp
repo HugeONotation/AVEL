@@ -1278,8 +1278,74 @@ namespace avel {
         #if (defined(AVEL_AVX512VL) && defined(AVEL_AVX512VPOPCNTDQ)) || defined(AVEL_AVX10_1)
         return mask4x64u{popcount(v) == vec4x64u{1}};
 
-        #elif defined(AVEL_SSE2)
+        #elif defined(AVEL_AVX2)
         return mask4x64u{v} & !mask4x64u{v & (v - vec4x64u{1})};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x64u no_bits(vec4x64u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x64u{_mm256_testn_epi64_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_AVX2)
+        return mask4x64u{_mm256_cmpeq_epi64(decay(v), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x64u no_bits_of(vec4x64u v, vec4x64u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x64u{_mm256_testn_epi64_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_AVX2)
+        return mask4x64u{_mm256_cmpeq_epi64(_mm256_and_si256(decay(v), decay(m)), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x64u any_bits(vec4x64u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x64u{_mm256_test_epi64_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_AVX2)
+        return !mask4x64u{_mm256_cmpeq_epi64(decay(v), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x64u any_bits_of(vec4x64u v, vec4x64u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x64u{_mm256_test_epi64_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_AVX2)
+        return !mask4x64u{_mm256_cmpeq_epi64(_mm256_and_si256(decay(v), decay(m)), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x64u all_bits(vec4x64u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x64u{_mm256_cmpeq_epi64_mask(decay(v), _mm256_set1_epi64x(-1))};
+
+        #elif defined(AVEL_AVX2)
+        return mask4x64u{_mm256_cmpeq_epi64(decay(v), _mm256_set1_epi64x(-1))};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask4x64u all_bits_of(vec4x64u v, vec4x64u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask4x64u{_mm256_cmpeq_epi64_mask(_mm256_and_si256(decay(v), decay(m)), decay(m))};
+
+        #elif defined(AVEL_AVX2)
+        return mask4x64u{_mm256_cmpeq_epi64(_mm256_and_si256(decay(v), decay(m)), decay(m))};
 
         #endif
     }

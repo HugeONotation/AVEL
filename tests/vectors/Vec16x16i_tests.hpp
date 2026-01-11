@@ -2374,6 +2374,153 @@ namespace avel_tests {
         }
     }
 
+    TEST(Vec16x16i, No_bits_edge_cases) {
+        EXPECT_TRUE(all(avel::no_bits(vec16x16i{0})));
+        EXPECT_FALSE(all(avel::no_bits(vec16x16i{-1})));
+    }
+
+    TEST(Vec16x16i, No_bits_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs = random_array<arr16x16i>();
+
+            vec16x16i v{inputs};
+
+            auto results = avel::no_bits(v);
+
+            arr16xb expected{};
+            for (std::size_t j = 0; j < inputs.size(); ++j) {
+                expected[j] = avel::no_bits(inputs[j]);
+            }
+
+            EXPECT_TRUE(results == mask16x16i{expected});
+        }
+    }
+
+    TEST(Vec16x16i, No_bits_of_edge_cases) {
+        EXPECT_TRUE(all(avel::no_bits_of(vec16x16i{0}, vec16x16i{0})));
+        EXPECT_TRUE(all(avel::no_bits_of(vec16x16i{0}, vec16x16i{-1})));
+
+        EXPECT_TRUE(all(avel::no_bits_of(vec16x16i{-1}, vec16x16i{0})));
+        EXPECT_FALSE(all(avel::no_bits_of(vec16x16i{-1}, vec16x16i{-1})));
+    }
+
+    TEST(Vec16x16i, No_bits_of_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr16x16i>();
+            auto inputs1 = random_array<arr16x16i>();
+
+            vec16x16i v0{inputs0};
+            vec16x16i v1{inputs1};
+
+            auto results = avel::no_bits_of(v0, v1);
+
+            arr16xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::no_bits_of(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask16x16i{expected});
+        }
+    }
+
+    TEST(Vec16x16i, Any_bits_edge_cases) {
+        EXPECT_FALSE(all(avel::any_bits(vec16x16i{0})));
+        EXPECT_TRUE(all(avel::any_bits(vec16x16i{-1})));
+    }
+
+    TEST(Vec16x16i, Any_bits_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs = random_array<arr16x16i>();
+
+            vec16x16i v{inputs};
+
+            auto results = avel::any_bits(v);
+
+            arr16xb expected{};
+            for (std::size_t j = 0; j < inputs.size(); ++j) {
+                expected[j] = avel::any_bits(inputs[j]);
+            }
+
+            EXPECT_TRUE(results == mask16x16i{expected});
+        }
+    }
+
+    TEST(Vec16x16i, Any_bits_of_edge_cases) {
+        EXPECT_FALSE(all(avel::any_bits_of(vec16x16i{0}, vec16x16i{0})));
+        EXPECT_FALSE(all(avel::any_bits_of(vec16x16i{0}, vec16x16i{-1})));
+
+        EXPECT_FALSE(all(avel::any_bits_of(vec16x16i{-1}, vec16x16i{0})));
+        EXPECT_TRUE(all(avel::any_bits_of(vec16x16i{-1}, vec16x16i{-1})));
+    }
+
+    TEST(Vec16x16i, Any_bits_of_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr16x16i>();
+            auto inputs1 = random_array<arr16x16i>();
+
+            vec16x16i v0{inputs0};
+            vec16x16i v1{inputs1};
+
+            auto results = avel::any_bits_of(v0, v1);
+
+            arr16xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::any_bits_of(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask16x16i{expected});
+        }
+    }
+
+    TEST(Vec16x16i, All_bits_edge_cases) {
+        EXPECT_FALSE(all(avel::all_bits(vec16x16i{0})));
+        EXPECT_TRUE(all(avel::all_bits(vec16x16i{-1})));
+    }
+
+    TEST(Vec16x16i, All_bits_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs = random_array<arr16x16i>();
+
+            vec16x16i v{inputs};
+
+            auto results = avel::all_bits(v);
+
+            arr16xb expected{};
+            for (std::size_t j = 0; j < inputs.size(); ++j) {
+                expected[j] = avel::all_bits(inputs[j]);
+            }
+
+            EXPECT_TRUE(results == mask16x16i{expected});
+        }
+    }
+
+    TEST(Vec16x16i, All_bits_of_edge_cases) {
+        EXPECT_TRUE(all(avel::all_bits_of(vec16x16i{0}, vec16x16i{0})));
+        EXPECT_FALSE(all(avel::all_bits_of(vec16x16i{0}, vec16x16i{-1})));
+
+        EXPECT_TRUE(all(avel::all_bits_of(vec16x16i{-1}, vec16x16i{0})));
+        EXPECT_TRUE(all(avel::all_bits_of(vec16x16i{-1}, vec16x16i{-1})));
+    }
+
+    TEST(Vec16x16i, All_bits_of_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr16x16i>();
+            auto inputs1 = random_array<arr16x16i>();
+
+            vec16x16i v0{inputs0};
+            vec16x16i v1{inputs1};
+
+            auto results = avel::all_bits_of(v0, v1);
+
+            arr16xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::all_bits_of(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask16x16i{expected});
+        }
+    }
+
 }
 
 #endif

@@ -1256,6 +1256,72 @@ namespace avel {
         #endif
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask8x32u no_bits(vec8x32u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask8x32u{_mm256_testn_epi32_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_AVX2)
+        return mask8x32u{_mm256_cmpeq_epi32(decay(v), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u no_bits_of(vec8x32u v, vec8x32u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask8x32u{_mm256_testn_epi32_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_AVX2)
+        return mask8x32u{_mm256_cmpeq_epi32(_mm256_and_si256(decay(v), decay(m)), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u any_bits(vec8x32u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask8x32u{_mm256_test_epi32_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_AVX2)
+        return !mask8x32u{_mm256_cmpeq_epi32(decay(v), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u any_bits_of(vec8x32u v, vec8x32u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask8x32u{_mm256_test_epi32_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_AVX2)
+        return !mask8x32u{_mm256_cmpeq_epi32(_mm256_and_si256(decay(v), decay(m)), _mm256_setzero_si256())};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u all_bits(vec8x32u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask8x32u{_mm256_cmpeq_epi32_mask(decay(v), _mm256_set1_epi32(-1))};
+
+        #elif defined(AVEL_AVX2)
+        return mask8x32u{_mm256_cmpeq_epi32(decay(v), _mm256_set1_epi32(-1))};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask8x32u all_bits_of(vec8x32u v, vec8x32u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask8x32u{_mm256_cmpeq_epi32_mask(_mm256_and_si256(decay(v), decay(m)), decay(m))};
+
+        #elif defined(AVEL_AVX2)
+        return mask8x32u{_mm256_cmpeq_epi32(_mm256_and_si256(decay(v), decay(m)), decay(m))};
+
+        #endif
+    }
+
 }
 
 #endif //AVEL_VEC8X32U_HPP

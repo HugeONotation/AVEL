@@ -1,4 +1,4 @@
-add_subdirectory(error_evaluator/)
+#add_subdirectory(error_evaluator/)
 
 # Function evaluator
 
@@ -19,7 +19,8 @@ add_executable(AVEL_baseline_generator
     baseline_generator/Baseline_generator.cpp
 )
 
-target_compile_options(AVEL_baseline_generator PRIVATE "-O3" "-ffp-contract=off") #"-fsanitize=undefined")
+target_compile_options(AVEL_baseline_generator PRIVATE "-O3" "-ffp-contract=off")
+#"-fsanitize=undefined")
 target_link_options(AVEL_baseline_generator PRIVATE) #"-fsanitize=undefined")
 
 target_compile_features(AVEL_baseline_generator PRIVATE cxx_std_20)

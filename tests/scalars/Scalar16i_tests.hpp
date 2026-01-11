@@ -219,6 +219,198 @@ namespace avel_tests {
         }
     }
 
+    //=====================================================
+    // Bit testing
+    //=====================================================
+
+    TEST(Scalar16i, No_bits_preselected) {
+        EXPECT_TRUE(avel::no_bits(std::int16_t(0x0000)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::int16_t) * CHAR_BIT; ++i) {
+            std::int16_t x = std::int16_t(1) << i;
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint16_t) * CHAR_BIT - 1; ++i) {
+            std::int16_t x = std::uint16_t(0xffff) >> (sizeof(std::uint16_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+    }
+
+    TEST(Scalar16i, No_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int16_t x = random16u();
+
+            bool expected = (x == 0x0000);
+            bool observed = avel::no_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar16i, No_bits_of_preselected) {
+        EXPECT_TRUE(avel::no_bits_of(std::int16_t(0x0000), std::int16_t(0x0000)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::int16_t) * CHAR_BIT; ++i) {
+            std::int16_t x = std::int16_t(1) << i;
+            EXPECT_TRUE(avel::no_bits_of(x, std::int16_t(0x0000)));
+        }
+
+        EXPECT_TRUE(avel::no_bits_of(std::int16_t(0x0000), std::int16_t(0xffff)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint16_t) * CHAR_BIT - 1; ++i) {
+            std::int16_t x = std::uint16_t(0xffff) >> (sizeof(std::uint16_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits_of(x, std::int16_t(0xffff)));
+        }
+    }
+
+    TEST(Scalar16i, No_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int16_t x = random16u();
+            std::int16_t m = random16u();
+
+            bool expected = true;
+            for (std::int32_t j = 0; j < sizeof(std::int16_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::no_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar16i, Any_bits_preselected) {
+        EXPECT_FALSE(avel::any_bits(std::int16_t(0x0000)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::int16_t) * CHAR_BIT; ++i) {
+            std::int16_t x = std::int16_t(1) << i;
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint16_t) * CHAR_BIT - 1; ++i) {
+            std::int16_t x = std::uint16_t(0xffff) >> (sizeof(std::uint16_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+    }
+
+    TEST(Scalar16i, Any_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int16_t x = random16u();
+
+            bool expected = (x != 0x0000);
+            bool observed = avel::any_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar16i, Any_bits_of_preselected) {
+        EXPECT_FALSE(avel::any_bits_of(std::int16_t(0x0000), std::int16_t(0x0000)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::int16_t) * CHAR_BIT; ++i) {
+            std::int16_t x = std::int16_t(1) << i;
+            EXPECT_FALSE(avel::any_bits_of(x, std::int16_t(0x0000)));
+        }
+
+        EXPECT_FALSE(avel::any_bits_of(std::int16_t(0x0000), std::int16_t(0xffff)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint16_t) * CHAR_BIT - 1; ++i) {
+            std::int16_t x = std::uint16_t(0xffff) >> (sizeof(std::uint16_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits_of(x, std::int16_t(0xffff)));
+        }
+    }
+
+    TEST(Scalar16i, Any_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int16_t x = random16u();
+            std::int16_t m = random16u();
+
+            bool expected = false;
+            for (std::int32_t j = 0; j < sizeof(std::int16_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected |= true;
+                }
+            }
+
+            bool observed = avel::any_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar16i, All_bits_preselected) {
+        EXPECT_FALSE(avel::all_bits(std::int16_t(0x0000)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::int16_t) * CHAR_BIT; ++i) {
+            std::int16_t x = std::int16_t(1) << i;
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint16_t) * CHAR_BIT - 1; ++i) {
+            std::int16_t x = std::uint16_t(0xffff) >> (sizeof(std::uint16_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        EXPECT_TRUE(avel::all_bits(std::int16_t(0xffff)));
+    }
+
+    TEST(Scalar16i, All_bits_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int16_t x = random16u();
+
+            bool expected = (x == 0xffff);
+            bool observed = avel::all_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar16i, All_bits_of_preselected) {
+        EXPECT_TRUE(avel::all_bits_of(std::int16_t(0x0000), std::int16_t(0x0000)));
+
+        for (std::uint32_t i = 0; i < sizeof(std::int16_t) * CHAR_BIT; ++i) {
+            std::int16_t x = std::int16_t(1) << i;
+            EXPECT_TRUE(avel::all_bits_of(x, std::int16_t(0x0000)));
+        }
+
+        for (std::uint32_t i = 0; i < sizeof(std::uint16_t) * CHAR_BIT - 1; ++i) {
+            std::int16_t x = std::uint16_t(0xffff) >> (sizeof(std::uint16_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits_of(x, std::int16_t(0xffff)));
+        }
+
+        EXPECT_TRUE(avel::all_bits_of(std::int16_t(0xffff), std::int16_t(0xffff)));
+    }
+
+    TEST(Scalar16i, All_bits_of_random) {
+        for (std::int32_t i = 0; i < iterations; ++i) {
+            std::int16_t x = random16u();
+            std::int16_t m = random16u();
+
+            bool expected = true;
+            for (std::int32_t j = 0; j < sizeof(std::int16_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (!x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::all_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
 }
 
 #endif //AVEL_SCALAR16I_TESTS_HPP

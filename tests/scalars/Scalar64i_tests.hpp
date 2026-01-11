@@ -219,6 +219,198 @@ namespace avel_tests {
         }
     }
 
+    //=====================================================
+    // Bit testing
+    //=====================================================
+
+    TEST(Scalar64i, No_bits_preselected) {
+        EXPECT_TRUE(avel::no_bits(std::int64_t(0x0000000000000000)));
+
+        for (std::int64_t i = 0; i < sizeof(std::int64_t) * CHAR_BIT; ++i) {
+            std::int64_t x = std::int64_t(1) << i;
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+
+        for (std::uint64_t i = 0; i < sizeof(std::uint64_t) * CHAR_BIT - 1; ++i) {
+            std::int64_t x = std::uint64_t(0xffffffffffffffff) >> (sizeof(std::uint64_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits(x));
+        }
+    }
+
+    TEST(Scalar64i, No_bits_random) {
+        for (std::int64_t i = 0; i < iterations; ++i) {
+            std::int64_t x = random64u();
+
+            bool expected = (x == 0x0000000000000000);
+            bool observed = avel::no_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar64i, No_bits_of_preselected) {
+        EXPECT_TRUE(avel::no_bits_of(std::int64_t(0x0000000000000000), std::int64_t(0x0000000000000000)));
+
+        for (std::int64_t i = 0; i < sizeof(std::int64_t) * CHAR_BIT; ++i) {
+            std::int64_t x = std::int64_t(1) << i;
+            EXPECT_TRUE(avel::no_bits_of(x, std::int64_t(0x0000000000000000)));
+        }
+
+        EXPECT_TRUE(avel::no_bits_of(std::int64_t(0x0000000000000000), std::int64_t(0xffffffffffffffff)));
+
+        for (std::uint64_t i = 0; i < sizeof(std::uint64_t) * CHAR_BIT - 1; ++i) {
+            std::int64_t x = std::uint64_t(0xffffffffffffffff) >> (sizeof(std::uint64_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::no_bits_of(x, std::int64_t(0xffffffffffffffff)));
+        }
+    }
+
+    TEST(Scalar64i, No_bits_of_random) {
+        for (std::int64_t i = 0; i < iterations; ++i) {
+            std::int64_t x = random64u();
+            std::int64_t m = random64u();
+
+            bool expected = true;
+            for (std::int64_t j = 0; j < sizeof(std::int64_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::no_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar64i, Any_bits_preselected) {
+        EXPECT_FALSE(avel::any_bits(std::int64_t(0x0000000000000000)));
+
+        for (std::int64_t i = 0; i < sizeof(std::int64_t) * CHAR_BIT; ++i) {
+            std::int64_t x = std::int64_t(1) << i;
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+
+        for (std::uint64_t i = 0; i < sizeof(std::uint64_t) * CHAR_BIT - 1; ++i) {
+            std::int64_t x = std::uint64_t(0xffffffffffffffff) >> (sizeof(std::uint64_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits(x));
+        }
+    }
+
+    TEST(Scalar64i, Any_bits_random) {
+        for (std::int64_t i = 0; i < iterations; ++i) {
+            std::int64_t x = random64u();
+
+            bool expected = (x != 0x0000000000000000);
+            bool observed = avel::any_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar64i, Any_bits_of_preselected) {
+        EXPECT_FALSE(avel::any_bits_of(std::int64_t(0x0000000000000000), std::int64_t(0x0000000000000000)));
+
+        for (std::int64_t i = 0; i < sizeof(std::int64_t) * CHAR_BIT; ++i) {
+            std::int64_t x = std::int64_t(1) << i;
+            EXPECT_FALSE(avel::any_bits_of(x, std::int64_t(0x0000000000000000)));
+        }
+
+        EXPECT_FALSE(avel::any_bits_of(std::int64_t(0x0000000000000000), std::int64_t(0xffffffffffffffff)));
+
+        for (std::uint64_t i = 0; i < sizeof(std::uint64_t) * CHAR_BIT - 1; ++i) {
+            std::int64_t x = std::uint64_t(0xffffffffffffffff) >> (sizeof(std::uint64_t) * CHAR_BIT - 1 - i);
+            EXPECT_TRUE(avel::any_bits_of(x, std::int64_t(0xffffffffffffffff)));
+        }
+    }
+
+    TEST(Scalar64i, Any_bits_of_random) {
+        for (std::int64_t i = 0; i < iterations; ++i) {
+            std::int64_t x = random64u();
+            std::int64_t m = random64u();
+
+            bool expected = false;
+            for (std::int64_t j = 0; j < sizeof(std::int64_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (x_bit && m_bit) {
+                    expected |= true;
+                }
+            }
+
+            bool observed = avel::any_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar64i, All_bits_preselected) {
+        EXPECT_FALSE(avel::all_bits(std::int64_t(0x0000000000000000)));
+
+        for (std::int64_t i = 0; i < sizeof(std::int64_t) * CHAR_BIT; ++i) {
+            std::int64_t x = std::int64_t(1) << i;
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        for (std::uint64_t i = 0; i < sizeof(std::uint64_t) * CHAR_BIT - 1; ++i) {
+            std::int64_t x = std::uint64_t(0xffffffffffffffff) >> (sizeof(std::uint64_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits(x));
+        }
+
+        EXPECT_TRUE(avel::all_bits(std::int64_t(0xffffffffffffffff)));
+    }
+
+    TEST(Scalar64i, All_bits_random) {
+        for (std::int64_t i = 0; i < iterations; ++i) {
+            std::int64_t x = random64u();
+
+            bool expected = (x == 0xffffffffffffffff);
+            bool observed = avel::all_bits(x);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
+    TEST(Scalar64i, All_bits_of_preselected) {
+        EXPECT_TRUE(avel::all_bits_of(std::int64_t(0x0000000000000000), std::int64_t(0x0000000000000000)));
+
+        for (std::int64_t i = 0; i < sizeof(std::int64_t) * CHAR_BIT; ++i) {
+            std::int64_t x = std::int64_t(1) << i;
+            EXPECT_TRUE(avel::all_bits_of(x, std::int64_t(0x0000000000000000)));
+        }
+
+        for (std::uint64_t i = 0; i < sizeof(std::uint64_t) * CHAR_BIT - 1; ++i) {
+            std::int64_t x = std::uint64_t(0xffffffffffffffff) >> (sizeof(std::uint64_t) * CHAR_BIT - 1 - i);
+            EXPECT_FALSE(avel::all_bits_of(x, std::int64_t(0xffffffffffffffff)));
+        }
+
+        EXPECT_TRUE(avel::all_bits_of(std::int64_t(0xffffffffffffffff), std::int64_t(0xffffffffffffffff)));
+    }
+
+    TEST(Scalar64i, All_bits_of_random) {
+        for (std::int64_t i = 0; i < iterations; ++i) {
+            std::int64_t x = random64u();
+            std::int64_t m = random64u();
+
+            bool expected = true;
+            for (std::int64_t j = 0; j < sizeof(std::int64_t) * CHAR_BIT; ++j) {
+                bool x_bit = (x >> j) & 0x1;
+                bool m_bit = (m >> j) & 0x1;
+
+                if (!x_bit && m_bit) {
+                    expected &= false;
+                }
+            }
+
+            bool observed = avel::all_bits_of(x, m);
+
+            EXPECT_EQ(expected, observed);
+        }
+    }
+
 }
 
 #endif //AVEL_SCALAR64I_TESTS_HPP

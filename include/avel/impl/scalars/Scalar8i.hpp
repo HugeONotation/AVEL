@@ -105,6 +105,45 @@ namespace avel {
     }
 
     [[nodiscard]]
+    AVEL_FINL bool no_bits(std::int8_t x) {
+        return no_bits(static_cast<std::uint8_t>(x));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool no_bits_of(std::int8_t x, std::int8_t m) {
+        return no_bits_of(
+            static_cast<std::uint8_t>(x),
+            static_cast<std::uint8_t>(m)
+        );
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool anys_bit(std::int8_t x) {
+        return any_bits(static_cast<std::uint8_t>(x));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool any_bits_of(std::int8_t x, std::int8_t m) {
+        return any_bits_of(
+            static_cast<std::uint8_t>(x),
+            static_cast<std::uint8_t>(m)
+        );
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool all_bits(std::int8_t x) {
+        return all_bits(static_cast<std::uint8_t>(x));
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool all_bits_of(std::int8_t x, std::int8_t m) {
+        return all_bits_of(
+            static_cast<std::uint8_t>(x),
+            static_cast<std::uint8_t>(m)
+        );
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::int8_t rotl(std::int8_t x, long long s) {
         return rotl(std::uint8_t(x), s);
     }

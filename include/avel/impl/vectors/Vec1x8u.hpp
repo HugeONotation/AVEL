@@ -806,6 +806,36 @@ namespace avel {
         return mask1x8u{has_single_bit(decay(v))};
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask1x8u no_bits(vec1x8u v) {
+        return mask1x8u{no_bits(decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x8u no_bits_of(vec1x8u v, vec1x8u m) {
+        return mask1x8u{no_bits_of(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x8u any_bits(vec1x8u v) {
+        return mask1x8u{any_bits(decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x8u any_bits_of(vec1x8u v, vec1x8u m) {
+        return mask1x8u{any_bits_of(decay(v), decay(m))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x8u all_bits(vec1x8u v) {
+        return mask1x8u{all_bits(decay(v))};
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask1x8u all_bits_of(vec1x8u v, vec1x8u m) {
+        return mask1x8u{all_bits_of(decay(v), decay(m))};
+    }
+
 }
 
 #endif //AVEL_VEC1X8U_HPP

@@ -2479,6 +2479,153 @@ namespace avel_tests {
         }
     }
 
+    TEST(Vec32x8u, No_bits_edge_cases) {
+        EXPECT_TRUE(all(avel::no_bits(vec32x8u{0})));
+        EXPECT_FALSE(all(avel::no_bits(vec32x8u(-1))));
+    }
+
+    TEST(Vec32x8u, No_bits_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs = random_array<arr32x8u>();
+
+            vec32x8u v{inputs};
+
+            auto results = avel::no_bits(v);
+
+            arr32xb expected{};
+            for (std::size_t j = 0; j < inputs.size(); ++j) {
+                expected[j] = avel::no_bits(inputs[j]);
+            }
+
+            EXPECT_TRUE(results == mask32x8u{expected});
+        }
+    }
+
+    TEST(Vec32x8u, No_bits_of_edge_cases) {
+        EXPECT_TRUE(all(avel::no_bits_of(vec32x8u{0}, vec32x8u{0})));
+        EXPECT_TRUE(all(avel::no_bits_of(vec32x8u{0}, vec32x8u(-1))));
+
+        EXPECT_TRUE(all(avel::no_bits_of(vec32x8u(-1), vec32x8u{0})));
+        EXPECT_FALSE(all(avel::no_bits_of(vec32x8u(-1), vec32x8u(-1))));
+    }
+
+    TEST(Vec32x8u, No_bits_of_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr32x8u>();
+            auto inputs1 = random_array<arr32x8u>();
+
+            vec32x8u v0{inputs0};
+            vec32x8u v1{inputs1};
+
+            auto results = avel::no_bits_of(v0, v1);
+
+            arr32xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::no_bits_of(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask32x8u{expected});
+        }
+    }
+
+    TEST(Vec32x8u, Any_bits_edge_cases) {
+        EXPECT_FALSE(all(avel::any_bits(vec32x8u{0})));
+        EXPECT_TRUE(all(avel::any_bits(vec32x8u(-1))));
+    }
+
+    TEST(Vec32x8u, Any_bits_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs = random_array<arr32x8u>();
+
+            vec32x8u v{inputs};
+
+            auto results = avel::any_bits(v);
+
+            arr32xb expected{};
+            for (std::size_t j = 0; j < inputs.size(); ++j) {
+                expected[j] = avel::any_bits(inputs[j]);
+            }
+
+            EXPECT_TRUE(results == mask32x8u{expected});
+        }
+    }
+
+    TEST(Vec32x8u, Any_bits_of_edge_cases) {
+        EXPECT_FALSE(all(avel::any_bits_of(vec32x8u{0}, vec32x8u{0})));
+        EXPECT_FALSE(all(avel::any_bits_of(vec32x8u{0}, vec32x8u(-1))));
+
+        EXPECT_FALSE(all(avel::any_bits_of(vec32x8u(-1), vec32x8u{0})));
+        EXPECT_TRUE(all(avel::any_bits_of(vec32x8u(-1), vec32x8u(-1))));
+    }
+
+    TEST(Vec32x8u, Any_bits_of_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr32x8u>();
+            auto inputs1 = random_array<arr32x8u>();
+
+            vec32x8u v0{inputs0};
+            vec32x8u v1{inputs1};
+
+            auto results = avel::any_bits_of(v0, v1);
+
+            arr32xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::any_bits_of(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask32x8u{expected});
+        }
+    }
+
+    TEST(Vec32x8u, All_bits_edge_cases) {
+        EXPECT_FALSE(all(avel::all_bits(vec32x8u{0})));
+        EXPECT_TRUE(all(avel::all_bits(vec32x8u(-1))));
+    }
+
+    TEST(Vec32x8u, All_bits_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs = random_array<arr32x8u>();
+
+            vec32x8u v{inputs};
+
+            auto results = avel::all_bits(v);
+
+            arr32xb expected{};
+            for (std::size_t j = 0; j < inputs.size(); ++j) {
+                expected[j] = avel::all_bits(inputs[j]);
+            }
+
+            EXPECT_TRUE(results == mask32x8u{expected});
+        }
+    }
+
+    TEST(Vec32x8u, All_bits_of_edge_cases) {
+        EXPECT_TRUE(all(avel::all_bits_of(vec32x8u{0}, vec32x8u{0})));
+        EXPECT_FALSE(all(avel::all_bits_of(vec32x8u{0}, vec32x8u(-1))));
+
+        EXPECT_TRUE(all(avel::all_bits_of(vec32x8u(-1), vec32x8u{0})));
+        EXPECT_TRUE(all(avel::all_bits_of(vec32x8u(-1), vec32x8u(-1))));
+    }
+
+    TEST(Vec32x8u, All_bits_of_random) {
+        for (std::size_t i = 0; i < iterations; ++i) {
+            auto inputs0 = random_array<arr32x8u>();
+            auto inputs1 = random_array<arr32x8u>();
+
+            vec32x8u v0{inputs0};
+            vec32x8u v1{inputs1};
+
+            auto results = avel::all_bits_of(v0, v1);
+
+            arr32xb expected{};
+            for (std::size_t j = 0; j < inputs0.size(); ++j) {
+                expected[j] = avel::all_bits_of(inputs0[j], inputs1[j]);
+            }
+
+            EXPECT_TRUE(results == mask32x8u{expected});
+        }
+    }
+
 }
 
 #endif

@@ -1955,6 +1955,90 @@ namespace avel {
         #endif
     }
 
+    [[nodiscard]]
+    AVEL_FINL mask2x64u no_bits(vec2x64u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask2x64u{_mm_testn_epi64_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask2x64u{_mm_cmpeq_epi64(decay(v), _mm_setzero_si128())};
+
+        #elif defined(AVEL_SSE2)
+        return v == vec2x64u{0x00};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u no_bits_of(vec2x64u v, vec2x64u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask2x64u{_mm_testn_epi64_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask2x64u{_mm_cmpeq_epi64(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #elif defined(AVEL_SSE2)
+        return (v & m) == vec2x64u{0x00};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u any_bits(vec2x64u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask2x64u{_mm_test_epi64_mask(decay(v), decay(v))};
+
+        #elif defined(AVEL_SSE4_1)
+        return !mask2x64u{_mm_cmpeq_epi64(decay(v), _mm_setzero_si128())};
+
+        #elif defined(AVEL_SSE2)
+        return v != vec2x64u{0x00};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u any_bits_of(vec2x64u v, vec2x64u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask2x64u{_mm_test_epi64_mask(decay(v), decay(m))};
+
+        #elif defined(AVEL_SSE4_1)
+        return !mask2x64u{_mm_cmpeq_epi64(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #elif defined(AVEL_SSE2)
+        return (v & m) != vec2x64u{0x00};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u all_bits(vec2x64u v) {
+        #if defined(AVEL_AVX512VL)
+        return mask2x64u{_mm_cmpeq_epi64_mask(decay(v), _mm_set1_epi64x(-1))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask2x64u{_mm_cmpeq_epi64(decay(v), _mm_set1_epi64x(-1))};
+
+        #elif defined(AVEL_SSE2)
+        return v == vec2x64u{std::uint64_t(-1)};
+
+        #endif
+    }
+
+    [[nodiscard]]
+    AVEL_FINL mask2x64u all_bits_of(vec2x64u v, vec2x64u m) {
+        #if defined(AVEL_AVX512VL)
+        return mask2x64u{_mm_cmpeq_epi64_mask(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #elif defined(AVEL_SSE4_1)
+        return mask2x64u{_mm_cmpeq_epi64(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #elif defined(AVEL_SSE2)
+        return (v & m) == m;
+
+        #endif
+    }
+
 }
 
 #endif //AVEL_VEC2X64U_HPP

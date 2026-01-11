@@ -166,6 +166,35 @@
     AVEL_FINL MASK_ALIAS has_single_bit(VEC_ALIAS x) {\
         return MASK_ALIAS{has_single_bit(UVEC_ALIAS(x))};\
     }\
-
+\
+    [[nodiscard]]\
+    AVEL_FINL MASK_ALIAS no_bits(VEC_ALIAS v) {\
+        return MASK_ALIAS{no_bits(UVEC_ALIAS(v))};\
+    }\
+\
+    [[nodiscard]]\
+    AVEL_FINL MASK_ALIAS no_bits_of(VEC_ALIAS v, VEC_ALIAS m) {\
+        return MASK_ALIAS{no_bits_of(UVEC_ALIAS(v), UVEC_ALIAS(m))};\
+    }\
+\
+    [[nodiscard]]\
+    AVEL_FINL MASK_ALIAS any_bits(VEC_ALIAS v) {\
+        return MASK_ALIAS{any_bits(UVEC_ALIAS(v))};\
+    }\
+\
+    [[nodiscard]]\
+    AVEL_FINL MASK_ALIAS any_bits_of(VEC_ALIAS v, VEC_ALIAS m) {\
+        return MASK_ALIAS{any_bits_of(UVEC_ALIAS(v), UVEC_ALIAS(m))};\
+    }\
+\
+    [[nodiscard]]\
+    AVEL_FINL MASK_ALIAS all_bits(VEC_ALIAS v) {\
+        return MASK_ALIAS{all_bits(UVEC_ALIAS(v))};\
+    }\
+\
+    [[nodiscard]]\
+    AVEL_FINL MASK_ALIAS all_bits_of(VEC_ALIAS v, VEC_ALIAS m) {\
+        return MASK_ALIAS{all_bits_of(UVEC_ALIAS(v), UVEC_ALIAS(m))};\
+    }\
 
 #endif //AVEL_VECTORS_COMMON_HPP

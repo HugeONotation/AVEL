@@ -283,6 +283,36 @@ namespace avel {
     }
 
     [[nodiscard]]
+    AVEL_FINL bool no_bits(std::uint8_t x) {
+        return x == 0x00;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool no_bits_of(std::uint8_t x, std::uint8_t m) {
+        return (x & m) == 0x00;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool any_bits(std::uint8_t x) {
+        return x != 0x00;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool any_bits_of(std::uint8_t x, std::uint8_t m) {
+        return (x & m) != 0x00;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool all_bits(std::uint8_t x) {
+        return x == 0xff;
+    }
+
+    [[nodiscard]]
+    AVEL_FINL bool all_bits_of(std::uint8_t x, std::uint8_t m) {
+        return (x & m) == m;
+    }
+
+    [[nodiscard]]
     AVEL_FINL std::uint8_t rotl(std::uint8_t x, long long s) {
         s &= 0x7;
         if (s == 0) {
