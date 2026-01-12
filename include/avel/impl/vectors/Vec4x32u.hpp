@@ -2030,6 +2030,13 @@ namespace avel {
         return mask4x32u{_mm_cmpeq_epi32(decay(v), _mm_setzero_si128())};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vceqzq_u32(decay(v))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -2039,6 +2046,13 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         return mask4x32u{_mm_cmpeq_epi32(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vceqzq_u32(vandq_u32(decay(v), decay(m)))};
 
         #endif
     }
@@ -2052,6 +2066,13 @@ namespace avel {
         return !mask4x32u{_mm_cmpeq_epi32(decay(v), _mm_setzero_si128())};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vtstq_u32(decay(v), decay(v))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -2063,6 +2084,13 @@ namespace avel {
         return !mask4x32u{_mm_cmpeq_epi32(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vtstq_u32(decay(v), decay(m))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -2070,8 +2098,15 @@ namespace avel {
         #if defined(AVEL_AVX512VL)
         return mask4x32u{_mm_cmpeq_epi32_mask(decay(v), _mm_set1_epi32(-1))};
 
-        #else
+        #elif defined(AVEL_SSE2)
         return mask4x32u{_mm_cmpeq_epi32(decay(v), _mm_set1_epi32(-1))};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vceqzq_u32(vmvnq_u32(decay(v)))};
 
         #endif
     }
@@ -2081,8 +2116,15 @@ namespace avel {
         #if defined(AVEL_AVX512VL)
         return mask4x32u{_mm_cmpeq_epi32_mask(_mm_and_si128(decay(v), decay(m)), decay(m))};
 
-        #else
+        #elif defined(AVEL_SSE2)
         return mask4x32u{_mm_cmpeq_epi32(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask4x32u{vceqq_u32(vandq_u32(decay(v), decay(m)), decay(m))};
 
         #endif
     }

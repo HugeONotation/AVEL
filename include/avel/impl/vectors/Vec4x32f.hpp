@@ -289,7 +289,8 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        return mask4x32f{vbslq_f32(decay(m), decay(v), vdupq_n_f32(0.0f))};
+        return mask4x32f{vbslq_u32(decay(m), decay(v), vdupq_n_u32(0))};
+
         #endif
     }
 
@@ -303,7 +304,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        return mask4x32f{vbslq_f32(decay(m), vdupq_n_f32(0.0f), decay(v))};
+        return mask4x32f{vbslq_u32(decay(m), vdupq_n_u32(0), decay(v))};
         #endif
     }
 
@@ -323,7 +324,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        return mask4x32f{vbslq_f32(decay(m), decay(a), decay(b))};
+        return mask4x32f{vbslq_u32(decay(m), decay(a), decay(b))};
         #endif
     }
 
@@ -1916,7 +1917,19 @@ namespace avel {
 
 
         #if defined(AVEL_AARCH64)
-        return vec4x32f{};
+        auto num_reg = decay(num);
+        auto whole_reg = vrndq_f32(num_reg);
+
+        auto is_inf = vcageq_f32(num_reg, vdupq_n_f32(INFINITY));
+        auto diff = vsubq_f32(num_reg, whole_reg);
+
+        auto masked_diff = vreinterpretq_f32_u32(vbicq_u32(vreinterpretq_u32_f32(diff), is_inf));
+
+        auto sign_bit_mask = vdupq_n_u32(0x80000000);
+        auto frac = vbslq_f32(sign_bit_mask, num_reg, masked_diff);
+
+        *iptr = whole_reg;
+        return vec4x32f{frac};
 
         #elif defined(AVEL_NEON)
         return vec4x32f{};
@@ -2157,7 +2170,7 @@ namespace avel {
 
         #if defined(AVEL_NEON)
         auto mask = vdupq_n_u32(float_sign_bit_mask_bits);
-        auto ret = 	vbslq_f32(mask, decay(sign), decay(mag));
+        auto ret = vbslq_f32(mask, decay(sign), decay(mag));
 
         return vec4x32f{ret};
         #endif

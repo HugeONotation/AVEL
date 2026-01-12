@@ -315,12 +315,12 @@ namespace avel {
 
         #if defined(AVEL_NEON)
         auto x = vreinterpretq_u32_u64(decay(m));
-        auto y = vreinterpretq_u32_s64(decay(a));
-        auto z = vreinterpretq_u32_s64(decay(b));
+        auto y = vreinterpretq_u32_u64(decay(a));
+        auto z = vreinterpretq_u32_u64(decay(b));
 
         auto w = vbslq_u32(x, y, z);
 
-        return mask2x64i{vreinterpretq_s64_u32(w)};
+        return mask2x64i{vreinterpretq_u64_u32(w)};
         #endif
     }
 

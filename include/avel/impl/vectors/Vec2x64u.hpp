@@ -1366,7 +1366,7 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        return vec2x64u{vbicq_u64(decay(v), decay(m))};
+        return vec2x64u{vandq_u64(decay(v), decay(m))};
         #endif
 
     }
@@ -1967,6 +1967,13 @@ namespace avel {
         return v == vec2x64u{0x00};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask2x64u{vceqzq_u64(decay(v))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -1979,6 +1986,13 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         return (v & m) == vec2x64u{0x00};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask2x64u{vceqzq_u64(vandq_u64(decay(v), decay(m)))};
 
         #endif
     }
@@ -1995,6 +2009,13 @@ namespace avel {
         return v != vec2x64u{0x00};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask2x64u{vtstq_u64(decay(v), decay(v))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -2007,6 +2028,13 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         return (v & m) != vec2x64u{0x00};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask2x64u{vtstq_u64(decay(v), decay(m))};
 
         #endif
     }
@@ -2023,6 +2051,15 @@ namespace avel {
         return v == vec2x64u{std::uint64_t(-1)};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        vec2x64u negated = ~v;
+        auto negated_primitive = decay(negated);
+        return mask2x64u{vceqzq_u64(negated_primitive)};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -2035,6 +2072,13 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         return (v & m) == m;
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask2x64u{vceqq_u64(vandq_u64(decay(v), decay(m)), decay(m))};
 
         #endif
     }

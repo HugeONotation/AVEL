@@ -3381,6 +3381,13 @@ namespace avel {
         return mask16x8u{_mm_cmpeq_epi8(decay(v), _mm_setzero_si128())};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask16x8u{vceqzq_u8(decay(v))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -3390,6 +3397,13 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         return mask16x8u{_mm_cmpeq_epi8(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask16x8u{vceqzq_u8(vandq_u8(decay(v), decay(m)))};
 
         #endif
     }
@@ -3403,6 +3417,13 @@ namespace avel {
         return !mask16x8u{_mm_cmpeq_epi8(decay(v), _mm_setzero_si128())};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask16x8u{vtstq_u8(decay(v), decay(v))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -3412,6 +3433,13 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         return !mask16x8u{_mm_cmpeq_epi8(_mm_and_si128(decay(v), decay(m)), _mm_setzero_si128())};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask16x8u{vtstq_u8(decay(v), decay(m))};
 
         #endif
     }
@@ -3425,6 +3453,13 @@ namespace avel {
         return mask16x8u{_mm_cmpeq_epi8(decay(v), _mm_set1_epi8(-1))};
 
         #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask16x8u{vceqzq_u8(vmvnq_u8(decay(v)))};
+
+        #endif
     }
 
     [[nodiscard]]
@@ -3434,6 +3469,13 @@ namespace avel {
 
         #elif defined(AVEL_SSE2)
         return mask16x8u{_mm_cmpeq_epi8(_mm_and_si128(decay(v), decay(m)), decay(m))};
+
+        #endif
+
+
+
+        #if defined(AVEL_NEON)
+        return mask16x8u{vceqq_u8(vandq_u8(decay(v), decay(m)), decay(m))};
 
         #endif
     }

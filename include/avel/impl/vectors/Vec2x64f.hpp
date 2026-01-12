@@ -273,8 +273,10 @@ namespace avel {
 
         #endif
 
+
         #if defined(AVEL_NEON)
-        return mask2x64f{vreinterpretq_f64_u64(vandq_u64(vreinterpretq_u64_f64(decay(v)), decay(m)))};
+        return mask2x64f{vandq_u64(decay(v), decay(m))};
+
         #endif
     }
 
@@ -289,7 +291,8 @@ namespace avel {
         #endif
 
         #if defined(AVEL_NEON)
-        return mask2x64f{vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(decay(v)), decay(m)))};
+        return mask2x64f{vbicq_u64(decay(v), decay(m))};
+
         #endif
     }
 
@@ -310,12 +313,12 @@ namespace avel {
 
         #if defined(AVEL_NEON)
         auto x = vreinterpretq_u32_u64(decay(m));
-        auto y = vreinterpretq_u32_f64(decay(a));
-        auto z = vreinterpretq_u32_f64(decay(b));
+        auto y = vreinterpretq_u32_u64(decay(a));
+        auto z = vreinterpretq_u32_u64(decay(b));
 
         auto w = vbslq_u32(x, y, z);
 
-        return mask2x64f{vreinterpretq_f64_u32(w)};
+        return mask2x64f{vreinterpretq_u64_u32(w)};
 
         #endif
     }
@@ -1765,7 +1768,19 @@ namespace avel {
 
 
         #if defined(AVEL_AARCH64)
-        return vec2x64f{};
+        auto num_reg = decay(num);
+        auto whole_reg = vrndq_f64(num_reg);
+
+        auto is_inf = vcageq_f64(num_reg, vdupq_n_f64(INFINITY));
+        auto diff = vsubq_f64(num_reg, whole_reg);
+
+        auto masked_diff = vreinterpretq_f64_u64(vbicq_u64(vreinterpretq_u64_f64(diff), is_inf));
+
+        auto sign_bit_mask = vdupq_n_u64(0x8000000000000000);
+        auto frac = vbslq_f64(sign_bit_mask, num_reg, masked_diff);
+
+        *iptr = whole_reg;
+        return vec2x64f{frac};
 
         #elif defined(AVEL_NEON)
         return vec2x64f{};
@@ -2027,7 +2042,7 @@ namespace avel {
 
         #if defined(AVEL_NEON)
         auto mask = vdupq_n_u64(double_sign_bit_mask_bits);
-        auto ret = 	vbslq_f64(mask, decay(sign), decay(mag));
+        auto ret = vbslq_f64(mask, decay(sign), decay(mag));
 
         return vec2x64f{ret};
         #endif
