@@ -475,3 +475,27 @@ void scatter(scalar* p, ivector indices, vector x)
 
 `mask has_single_bit(vector x)`
 * for each lane, produces true if `x` has a single bit set. False otherwise
+
+`mask no_bits(vector v)`
+* for each lane, return `true` if `v` has no bits set, and `false` otherwise
+
+`mask no_bits_of(vector v, vector m)`
+* for each lane, return `true` if no set bits in `m` are set in `v`, and `false`
+  otherwise
+* If all bits in `m` are cleared, this always returns `true`
+
+`mask any_bits(vector v)`
+* for each lane, return `true` if any bits in `v` are set, and `false` otherwise
+
+`mask any_bits_of(vector v, vector m)`
+* for each lane, return `true` if any set bits in `m` are also set in `v`, and 
+  `false` otherwise
+* If all bits in `m` are cleared, this always returns `false`
+
+`mask all_bits(vector v)`
+* for each lane, return `true` if all bits in `v` are set, and `false` otherwise
+
+`mask all_bits_of(vector v, vector m)`
+* for each lane, return `true` if every set bits in `m` are also set in `v`, and
+  `false` otherwise
+* If all bits in `m` are cleared, this always returns `true`
